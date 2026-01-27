@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Learning Path</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="hud">
+      <div class="brand">Learning Path</div>
+      <div id="hud-hint" class="hint"></div>
+    </div>
+
+    <canvas id="game"></canvas>
+    <div id="orientation-overlay" class="orientation-overlay" aria-hidden="true">
+      <div class="orientation-card">
+        <img class="orientation-logo" src="imgs/logo.jpeg" alt="Logo Learning Path" />
+        <strong>Gire o celular</strong>
+        <span>Para uma melhor experiencia, use o modo paisagem.</span>
+      </div>
+    </div>
+
+    <button id="accelerate-button" class="accelerate-button" aria-label="Acelerar">
+      <img src="imgs/button_normal.png" alt="" />
+    </button>
+
+    <div id="intro-modal" class="modal" role="dialog" aria-modal="true">
+      <div class="intro-card">
+        <div class="intro-content">
+          <h2>Orientacoes do jogo</h2>
+          <ul>
+            <li>Use as setas do teclado para dirigir o carrinho.</li>
+            <li>Ao chegar nas paradas, leia as instrucoes e continue.</li>
+          </ul>
+          <button id="intro-start" class="primary">Iniciar trilha</button>
+        </div>
+        <div class="intro-media">
+          <img src="imgs/logo.jpeg" alt="Logo Learning Path" />
+        </div>
+      </div>
+    </div>
+
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 id="modal-title">Parada</h2>
+          <button id="modal-close" class="ghost">Voltar para a trilha</button>
+        </div>
+        <div id="modal-body" class="modal-body"></div>
+      </div>
+    </div>
+
+    <div id="end-screen" class="end-screen hidden">
+      <div class="end-card">
+        <img class="end-logo" src="imgs/logo.jpeg" alt="Logo do game" />
+        <p>Parabens! Voce concluiu a trilha.</p>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
