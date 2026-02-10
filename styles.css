@@ -59,6 +59,15 @@ body {
   gap: 4px;
 }
 
+.sidebar-logo {
+  width: 100%;
+  max-width: none;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+}
+
 .sidebar-title {
   font-size: 16px;
   letter-spacing: 0.12em;
@@ -252,8 +261,8 @@ body {
 
 .accelerate-button {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  right: 32px;
+  bottom: 32px;
   z-index: 5;
   background: transparent;
   border: none;
@@ -756,8 +765,8 @@ button[disabled] {
   }
 
   .accelerate-button {
-    right: 18px;
-    bottom: 18px;
+    right: 32px;
+    bottom: 32px;
   }
 
   .intro-card {
