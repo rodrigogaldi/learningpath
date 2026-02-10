@@ -11,6 +11,7 @@ const introStart = document.getElementById('intro-start');
 const endScreen = document.getElementById('end-screen');
 const accelButton = document.getElementById('accelerate-button');
 const hudHint = document.getElementById('hud-hint');
+const sidebarList = document.getElementById('stop-list');
 
 const keyState = new Set();
 let accelHeld = false;
@@ -52,27 +53,119 @@ const stopData = [
   {
     id: 'p1',
     name: 'Parada 1 - Integridade',
-    text: 'Reflita sobre as boas praticas ao dirigir neste trecho.',
-    distance: 520
+    distance: 520,
+    content: {
+      title: 'Etapa de conteudo',
+      body:
+        'Reflita sobre as boas praticas ao dirigir neste trecho. Lorem ipsum dolor sit amet, consectetur adipiscing elit. ' +
+        'Suspendisse varius, massa sed facilisis luctus, lorem justo dapibus eros, vitae consequat lacus massa at velit. ' +
+        'Use este texto apenas para teste visual da area de conteudo.',
+      video: 'https://www.w3schools.com/html/mov_bbb.mp4'
+    },
+    games: [
+      { id: 'memory', type: 'memory', title: 'Jogo da memoria', description: 'Encontre os 6 pares.' },
+      {
+        id: 'quiz',
+        type: 'quiz',
+        title: 'Pergunta rapida',
+        description: 'Escolha a melhor resposta.',
+        question: 'Qual atitude reduz riscos na via?',
+        options: ['Dirigir atento ao espaco', 'Ignorar a sinalizacao', 'Manter velocidade elevada'],
+        correctIndex: 0
+      },
+      {
+        id: 'sequence',
+        type: 'sequence',
+        title: 'Ordem correta',
+        description: 'Organize as etapas.',
+        steps: ['Verificar espelhos', 'Sinalizar manobra', 'Executar com controle', 'Retomar faixa']
+      }
+    ]
   },
   {
     id: 'p2',
     name: 'Parada 2 - Comunicacao',
-    text: 'Descreva como voce comunica um incidente na via.',
-    distance: 1180
+    distance: 1180,
+    content: {
+      title: 'Etapa de conteudo',
+      body: 'Descreva como voce comunica um incidente na via.'
+    },
+    games: [
+      { id: 'memory', type: 'memory', title: 'Jogo da memoria', description: 'Encontre os 6 pares.' },
+      {
+        id: 'quiz',
+        type: 'quiz',
+        title: 'Pergunta rapida',
+        description: 'Escolha a melhor resposta.',
+        question: 'Qual canal deve ser usado para reportar incidentes?',
+        options: ['Canal oficial da equipe', 'Grupo pessoal', 'Mensagem privada sem registro'],
+        correctIndex: 0
+      },
+      {
+        id: 'sequence',
+        type: 'sequence',
+        title: 'Ordem correta',
+        description: 'Organize as etapas.',
+        steps: ['Identificar o local', 'Comunicar ao lider', 'Registrar evidencias', 'Aguardar orientacao']
+      }
+    ]
   },
   {
     id: 'p3',
     name: 'Parada 3 - Procedimentos',
-    text: 'Revise o video com as etapas do treinamento.',
-    video: 'https://www.w3schools.com/html/mov_bbb.mp4',
-    distance: 1760
+    distance: 1760,
+    content: {
+      title: 'Etapa de conteudo',
+      body: 'Revise o video com as etapas do treinamento.',
+      video: 'https://www.w3schools.com/html/mov_bbb.mp4'
+    },
+    games: [
+      { id: 'memory', type: 'memory', title: 'Jogo da memoria', description: 'Encontre os 6 pares.' },
+      {
+        id: 'quiz',
+        type: 'quiz',
+        title: 'Pergunta rapida',
+        description: 'Escolha a melhor resposta.',
+        question: 'Quando registrar a conclusao de uma etapa?',
+        options: ['Ao finalizar o procedimento', 'Antes de iniciar', 'Somente no fim do dia'],
+        correctIndex: 0
+      },
+      {
+        id: 'sequence',
+        type: 'sequence',
+        title: 'Ordem correta',
+        description: 'Organize as etapas.',
+        steps: ['Checar equipamentos', 'Executar tarefa', 'Validar resultado', 'Registrar no sistema']
+      }
+    ]
   },
   {
     id: 'p4',
     name: 'Parada 4 - Decisao',
-    text: 'Quais escolhas reduzem riscos para a equipe?',
-    distance: 2360
+    distance: 2360,
+    content: {
+      title: 'Etapa de conteudo',
+      body: 'Quais escolhas reduzem riscos para a equipe?'
+    },
+    games: [
+      { id: 'memory', type: 'memory', title: 'Jogo da memoria', description: 'Encontre os 6 pares.' },
+      {
+        id: 'quiz',
+        type: 'quiz',
+        title: 'Pergunta rapida',
+        description: 'Escolha a melhor resposta.',
+        question: 'Qual decisao prioriza seguranca?',
+        options: ['Pausar e avaliar riscos', 'Ignorar sinais de alerta', 'Acelerar para terminar logo'],
+        correctIndex: 0
+      },
+      {
+        id: 'sequence',
+        type: 'sequence',
+        title: 'Ordem correta',
+        description: 'Organize as etapas.',
+        steps: ['Mapear riscos', 'Definir plano', 'Executar com cuidado', 'Revisar resultados']
+      }
+    ]
   }
 ];
 
@@ -110,6 +203,9 @@ const state = {
   lapStartTime: null,
   lapTime: 0,
   stopTimes: new Map(),
+  stopProgress: new Map(),
+  activeStopId: null,
+  activeStageId: null,
   lastTime: performance.now()
 };
 
@@ -436,6 +532,136 @@ function formatLapTime(ms) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${tenths}`;
 }
 
+function shuffleArray(items) {
+  const array = [...items];
+  for (let i = array.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function getStopIndex(stopId) {
+  return stopData.findIndex((stop) => stop.id === stopId);
+}
+
+function getStopProgress(stopId) {
+  if (!state.stopProgress.has(stopId)) {
+    state.stopProgress.set(stopId, {
+      contentDone: false,
+      gamesDone: new Set()
+    });
+  }
+  return state.stopProgress.get(stopId);
+}
+
+function isStopCompleted(stopId) {
+  const stop = stopData.find((entry) => entry.id === stopId);
+  if (!stop) return false;
+  const progress = getStopProgress(stopId);
+  return progress.contentDone && progress.gamesDone.size >= stop.games.length;
+}
+
+function isStopUnlocked(stopId) {
+  const index = getStopIndex(stopId);
+  if (index <= 0) return true;
+  const prevStop = stopData[index - 1];
+  return prevStop ? isStopCompleted(prevStop.id) : true;
+}
+
+function renderSidebar() {
+  if (!sidebarList) return;
+  sidebarList.innerHTML = '';
+
+  stopData.forEach((stop, index) => {
+    const progress = getStopProgress(stop.id);
+    const completed = isStopCompleted(stop.id);
+    const unlocked = isStopUnlocked(stop.id);
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'stop-item';
+    if (!unlocked) item.classList.add('locked');
+    if (completed) item.classList.add('completed');
+    if (state.activeStopId === stop.id) item.classList.add('active');
+
+    const title = document.createElement('div');
+    title.className = 'stop-item-title';
+    title.textContent = stop.name || `Parada ${index + 1}`;
+    item.appendChild(title);
+
+    const meta = document.createElement('div');
+    meta.className = 'stop-item-meta';
+    if (!unlocked) {
+      meta.textContent = 'Bloqueado ate concluir a parada anterior';
+    } else if (completed) {
+      meta.textContent = 'Concluido';
+    } else if (progress.contentDone) {
+      meta.textContent = `Games concluidos: ${progress.gamesDone.size}/${stop.games.length}`;
+    } else {
+      meta.textContent = 'Conteudo pendente';
+    }
+    item.appendChild(meta);
+
+    item.addEventListener('click', () => {
+      if (!unlocked) return;
+      openStopModal(stop);
+    });
+
+    sidebarList.appendChild(item);
+  });
+}
+
+function areAllStopsCompleted() {
+  return stopData.every((stop) => isStopCompleted(stop.id));
+}
+
+function buildStopStages(stop) {
+  const stages = [
+    {
+      id: 'content',
+      type: 'content',
+      title: stop.content?.title || 'Etapa de conteudo'
+    }
+  ];
+  stop.games.forEach((game) => {
+    stages.push({
+      id: `game:${game.id}`,
+      type: 'game',
+      title: game.title,
+      game
+    });
+  });
+  return stages;
+}
+
+function isStageCompleted(stop, stage, progress) {
+  if (stage.type === 'content') {
+    return progress.contentDone;
+  }
+  return progress.gamesDone.has(stage.game.id);
+}
+
+function isStageUnlocked(stages, stop, progress, index) {
+  if (index === 0) return true;
+  const prevStage = stages[index - 1];
+  return isStageCompleted(stop, prevStage, progress);
+}
+
+function resolveActiveStage(stages, stop, progress) {
+  let targetIndex = stages.findIndex((stage) => !isStageCompleted(stop, stage, progress));
+  if (targetIndex === -1) {
+    targetIndex = Math.max(0, stages.length - 1);
+  }
+
+  const storedIndex = stages.findIndex((stage) => stage.id === state.activeStageId);
+  if (storedIndex !== -1 && isStageUnlocked(stages, stop, progress, storedIndex)) {
+    targetIndex = storedIndex;
+  }
+
+  state.activeStageId = stages[targetIndex]?.id || null;
+  return stages[targetIndex] || null;
+}
+
 function unlockRunningSound() {
   if (runningSoundUnlocked) return;
   runningSoundUnlocked = true;
@@ -702,13 +928,14 @@ function drawStops() {
     const marker = getPointAt(distance);
     const screen = toScreen(marker);
     const visited = state.visited.has(stop.id);
-    const baseRadius = visited ? 10 : 14;
-    const radius = (baseRadius + (visited ? 2 : 4) * pulse) * state.view.scale;
+    const baseRadius = 14;
+    const radius = (baseRadius + 4 * pulse) * state.view.scale;
 
     ctx.beginPath();
     ctx.arc(screen.x, screen.y, radius, 0, Math.PI * 2);
-    const alpha = visited ? 0.35 + 0.15 * pulse : 0.75 + 0.2 * pulse;
-    ctx.fillStyle = `rgba(242,95,92,${alpha})`;
+    const alpha = visited ? 0.6 + 0.2 * pulse : 0.75 + 0.2 * pulse;
+    const color = visited ? '123,211,137' : '242,95,92';
+    ctx.fillStyle = `rgba(${color},${alpha})`;
     ctx.fill();
 
     ctx.strokeStyle = 'rgba(255,255,255,0.5)';
@@ -807,46 +1034,99 @@ function showEndScreen() {
 
 function openStopModal(stop) {
   state.modalOpen = true;
-  modalTitle.textContent = stop.name || 'Parada';
+  state.activeStopId = stop.id;
+  state.activeStageId = null;
+  renderStopModal(stop);
+  modal.classList.remove('hidden');
+  renderSidebar();
+}
+
+function closeStopModal() {
+  if (state.activeStopId && !isStopCompleted(state.activeStopId)) {
+    return;
+  }
+  modal.classList.add('hidden');
+  state.modalOpen = false;
+  state.activeStopId = null;
+  state.activeStageId = null;
+  renderSidebar();
+}
+
+function renderStopModal(stop) {
   modalBody.innerHTML = '';
   modalClose.style.display = '';
+
   if (modalHeader) {
-    const existingResults = modalHeader.querySelector('.results-button');
-    if (existingResults) existingResults.remove();
+    modalHeader.innerHTML = '';
   }
 
-  if (stop.text) {
-    const label = document.createElement('div');
-    label.textContent = 'Notas:';
-    modalBody.appendChild(label);
+  const progress = getStopProgress(stop.id);
+  const completed = isStopCompleted(stop.id);
+  const stages = buildStopStages(stop);
+  const activeStage = resolveActiveStage(stages, stop, progress);
 
-    const textarea = document.createElement('textarea');
-    textarea.value = stop.text;
-    modalBody.appendChild(textarea);
-  }
+  const headerTitle = document.createElement('h2');
+  headerTitle.textContent = stop.name || 'Parada';
+  modalHeader.appendChild(headerTitle);
 
-  if (stop.video) {
-    const label = document.createElement('div');
-    label.textContent = 'Video:';
-    modalBody.appendChild(label);
+  const progressLabel = document.createElement('div');
+  progressLabel.className = 'modal-progress';
+  progressLabel.textContent = completed
+    ? 'Parada concluida'
+    : `Etapas concluidas ${stages.filter((stage) => isStageCompleted(stop, stage, progress)).length}/${stages.length}`;
+  modalHeader.appendChild(progressLabel);
 
-    if (stop.video.endsWith('.mp4') || stop.video.endsWith('.webm')) {
-      const video = document.createElement('video');
-      video.src = stop.video;
-      video.controls = true;
-      modalBody.appendChild(video);
+  const stageList = document.createElement('div');
+  stageList.className = 'modal-stage-list';
+
+  stages.forEach((stage, index) => {
+    const unlocked = isStageUnlocked(stages, stop, progress, index);
+    const done = isStageCompleted(stop, stage, progress);
+    const stageRow = document.createElement('div');
+    stageRow.className = 'modal-stage';
+    if (done) stageRow.classList.add('complete');
+    if (!unlocked) stageRow.classList.add('locked');
+    if (activeStage && stage.id === activeStage.id) stageRow.classList.add('active');
+
+    const title = document.createElement('div');
+    title.className = 'modal-stage-title';
+    title.textContent = stage.title;
+    stageRow.appendChild(title);
+
+    const status = document.createElement('div');
+    status.className = 'modal-stage-status';
+    status.textContent = done ? 'Concluido' : unlocked ? 'Disponivel' : 'Bloqueado';
+    stageRow.appendChild(status);
+
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'ghost modal-stage-action';
+    action.classList.add('btn-compact');
+    if (stage.type === 'content') {
+      action.textContent = done ? 'Rever' : 'Visualizar';
     } else {
-      const iframe = document.createElement('iframe');
-      iframe.src = stop.video;
-      iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-      modalBody.appendChild(iframe);
+      action.textContent = done ? 'Rever' : 'Jogar';
     }
-  }
+    action.disabled = !unlocked;
+    action.addEventListener('click', () => {
+      if (!unlocked) return;
+      state.activeStageId = stage.id;
+      renderStopModal(stop);
+    });
+    stageRow.appendChild(action);
+
+    stageList.appendChild(stageRow);
+  });
+
+  modalHeader.appendChild(stageList);
+  modalClose.classList.add('modal-close');
+  modalClose.classList.add('btn-compact');
+  modalClose.disabled = !completed;
+  modalClose.textContent = completed ? 'Voltar para a trilha' : 'Conclua as etapas';
+  modalHeader.appendChild(modalClose);
 
   const lastStopId = stopData[stopData.length - 1]?.id;
-  if (stop.id === lastStopId) {
-    modalClose.style.display = 'none';
-
+  if (completed && stop.id === lastStopId) {
     const resultsButton = document.createElement('button');
     resultsButton.className = 'primary results-button';
     resultsButton.textContent = 'Finalizar trilha';
@@ -854,20 +1134,266 @@ function openStopModal(stop) {
       closeStopModal();
       showEndScreen();
     });
+    modalHeader.appendChild(resultsButton);
+  }
 
-    if (modalHeader) {
-      modalHeader.appendChild(resultsButton);
+  if (activeStage) {
+    renderStageContent(stop, activeStage, progress, stages);
+  }
+}
+
+function renderStageContent(stop, stage, progress, stages) {
+  modalBody.innerHTML = '';
+  if (stage.type === 'content') {
+    renderContentStage(stop, progress, stages, stage);
+    return;
+  }
+  renderGameStage(stop, progress, stages, stage);
+}
+
+function advanceStage(stop, stages, currentStage) {
+  const currentIndex = stages.findIndex((stage) => stage.id === currentStage.id);
+  const nextIndex = currentIndex + 1;
+  if (nextIndex < stages.length) {
+    state.activeStageId = stages[nextIndex].id;
+  }
+  renderStopModal(stop);
+  renderSidebar();
+}
+
+function renderContentStage(stop, progress, stages, stage) {
+  const kicker = document.createElement('div');
+  kicker.className = 'content-kicker';
+  kicker.textContent = 'Conteudo da parada';
+  modalBody.appendChild(kicker);
+
+  const contentSection = document.createElement('section');
+  contentSection.className = 'stop-section';
+  const contentTitle = document.createElement('h3');
+  contentTitle.textContent = stop.content?.title || 'Etapa de conteudo';
+  contentSection.appendChild(contentTitle);
+
+  const contentBody = document.createElement('p');
+  contentBody.textContent = stop.content?.body || 'Complete a etapa de conteudo para liberar os games.';
+  contentSection.appendChild(contentBody);
+
+  if (stop.content?.video) {
+    if (stop.content.video.endsWith('.mp4') || stop.content.video.endsWith('.webm')) {
+      const video = document.createElement('video');
+      video.src = stop.content.video;
+      video.controls = true;
+      contentSection.appendChild(video);
     } else {
-      modalBody.appendChild(resultsButton);
+      const iframe = document.createElement('iframe');
+      iframe.src = stop.content.video;
+      iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+      contentSection.appendChild(iframe);
     }
   }
 
-  modal.classList.remove('hidden');
+  const contentStatus = document.createElement('div');
+  contentStatus.className = 'badge';
+  contentStatus.textContent = progress.contentDone ? 'Conteudo concluido' : 'Conteudo pendente';
+  if (progress.contentDone) contentStatus.classList.add('success');
+  contentSection.appendChild(contentStatus);
+
+  const contentButton = document.createElement('button');
+  contentButton.className = 'primary';
+  contentButton.classList.add('btn-compact');
+  contentButton.classList.add('btn-inline');
+  contentButton.textContent = progress.contentDone ? 'Conteudo concluido' : 'Concluir etapa';
+  contentButton.disabled = progress.contentDone;
+  contentButton.addEventListener('click', () => {
+    progress.contentDone = true;
+    advanceStage(stop, stages, stage);
+  });
+  contentSection.appendChild(contentButton);
+  modalBody.appendChild(contentSection);
 }
 
-function closeStopModal() {
-  modal.classList.add('hidden');
-  state.modalOpen = false;
+function renderGameStage(stop, progress, stages, stage) {
+  const game = stage.game;
+  const kicker = document.createElement('div');
+  kicker.className = 'content-kicker';
+  kicker.textContent = 'Game da parada';
+  modalBody.appendChild(kicker);
+
+  const header = document.createElement('section');
+  header.className = 'stop-section';
+  const title = document.createElement('h3');
+  title.textContent = game.title;
+  header.appendChild(title);
+  const desc = document.createElement('p');
+  desc.textContent = game.description || '';
+  header.appendChild(desc);
+  modalBody.appendChild(header);
+
+  const board = document.createElement('div');
+  board.className = 'game-board';
+  modalBody.appendChild(board);
+
+  const onComplete = () => {
+    progress.gamesDone.add(game.id);
+    advanceStage(stop, stages, stage);
+  };
+
+  if (game.type === 'memory') {
+    renderMemoryGame(board, onComplete);
+  } else if (game.type === 'quiz') {
+    renderQuizGame(board, game, onComplete);
+  } else if (game.type === 'sequence') {
+    renderSequenceGame(board, game, onComplete);
+  }
+}
+
+function renderMemoryGame(container, onComplete) {
+  const symbols = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const deck = shuffleArray([...symbols, ...symbols]);
+  const grid = document.createElement('div');
+  grid.className = 'memory-grid';
+  container.appendChild(grid);
+
+  let firstIndex = null;
+  let lock = false;
+  const matched = new Set();
+  const elements = [];
+
+  const revealCard = (index, show) => {
+    const el = elements[index];
+    if (!el) return;
+    if (show) {
+      el.classList.add('revealed');
+      el.textContent = deck[index];
+    } else {
+      el.classList.remove('revealed');
+      el.textContent = '';
+    }
+  };
+
+  const checkCompletion = () => {
+    if (matched.size === deck.length) {
+      onComplete();
+    }
+  };
+
+  deck.forEach((symbol, index) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'memory-card';
+    card.addEventListener('click', () => {
+      if (lock || matched.has(index)) return;
+      if (firstIndex === index) return;
+      revealCard(index, true);
+      if (firstIndex === null) {
+        firstIndex = index;
+        return;
+      }
+      if (deck[firstIndex] === symbol) {
+        matched.add(firstIndex);
+        matched.add(index);
+        elements[firstIndex].classList.add('matched');
+        card.classList.add('matched');
+        firstIndex = null;
+        checkCompletion();
+        return;
+      }
+      lock = true;
+      const prevIndex = firstIndex;
+      firstIndex = null;
+      setTimeout(() => {
+        revealCard(prevIndex, false);
+        revealCard(index, false);
+        lock = false;
+      }, 700);
+    });
+    elements.push(card);
+    grid.appendChild(card);
+  });
+}
+
+function renderQuizGame(container, game, onComplete) {
+  const question = document.createElement('p');
+  question.textContent = game.question;
+  container.appendChild(question);
+
+  const options = document.createElement('div');
+  options.className = 'quiz-options';
+  container.appendChild(options);
+
+  let solved = false;
+  game.options.forEach((option, index) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'quiz-option';
+    btn.textContent = option;
+    btn.addEventListener('click', () => {
+      if (index === game.correctIndex) {
+        if (solved) return;
+        btn.classList.add('correct');
+        solved = true;
+        Array.from(options.children).forEach((child) => {
+          child.disabled = true;
+        });
+        onComplete();
+      } else {
+        btn.classList.add('incorrect');
+      }
+    });
+    options.appendChild(btn);
+  });
+}
+
+function renderSequenceGame(container, game, onComplete) {
+  const selected = [];
+  const info = document.createElement('p');
+  info.textContent = 'Clique nas etapas na ordem correta.';
+  container.appendChild(info);
+
+  const selectedWrap = document.createElement('div');
+  selectedWrap.className = 'sequence-selected';
+  container.appendChild(selectedWrap);
+
+  const optionsWrap = document.createElement('div');
+  optionsWrap.className = 'sequence-options';
+  container.appendChild(optionsWrap);
+
+  const resetButton = document.createElement('button');
+  resetButton.type = 'button';
+  resetButton.className = 'ghost';
+  resetButton.textContent = 'Reiniciar sequencia';
+  resetButton.addEventListener('click', () => {
+    selected.length = 0;
+    selectedWrap.innerHTML = '';
+    Array.from(optionsWrap.children).forEach((child) => {
+      child.disabled = false;
+    });
+  });
+  container.appendChild(resetButton);
+
+  const shuffled = shuffleArray(game.steps);
+  shuffled.forEach((step) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'sequence-chip';
+    chip.textContent = step;
+    chip.addEventListener('click', () => {
+      selected.push(step);
+      const tag = document.createElement('span');
+      tag.textContent = step;
+      selectedWrap.appendChild(tag);
+      chip.disabled = true;
+
+      if (selected.length === game.steps.length) {
+        const correct = selected.every((value, idx) => value === game.steps[idx]);
+        if (correct) {
+          onComplete();
+        } else {
+          info.textContent = 'Sequencia incorreta. Tente novamente.';
+        }
+      }
+    });
+    optionsWrap.appendChild(chip);
+  });
 }
 
 function resetGame() {
@@ -880,6 +1406,9 @@ function resetGame() {
   state.visited = new Set();
   state.stopInRange = new Set();
   state.stopTimes = new Map();
+  state.stopProgress = new Map();
+  state.activeStopId = null;
+  state.activeStageId = null;
   state.modalOpen = false;
   state.paused = false;
   state.lapStartTime = null;
@@ -893,6 +1422,7 @@ function resetGame() {
     endScreen.classList.add('hidden');
   }
   buildTrack();
+  renderSidebar();
 }
 
 function update(dt) {
@@ -950,6 +1480,9 @@ function update(dt) {
     if (!Number.isFinite(distance)) continue;
     const inRange = Math.abs(state.progress - distance) <= config.stopRadius;
     if (inRange && !state.stopInRange.has(stop.id)) {
+      if (!isStopUnlocked(stop.id)) {
+        continue;
+      }
       state.stopInRange.add(stop.id);
       if (!state.visited.has(stop.id)) {
         state.visited.add(stop.id);
@@ -968,7 +1501,7 @@ function update(dt) {
   if (
     state.finished &&
     !state.modalOpen &&
-    (stopData.length === 0 || state.visited.size === stopData.length)
+    (stopData.length === 0 || areAllStopsCompleted())
   ) {
     showEndScreen();
   }
