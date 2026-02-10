@@ -39,6 +39,8 @@ const backgroundImage = new Image();
 let backgroundReady = false;
 backgroundImage.addEventListener('load', () => {
   backgroundReady = true;
+  migrateTrackPointsToBackground();
+  buildTrack();
 });
 backgroundImage.addEventListener('error', () => {
   const nextIndex = backgroundSourceIndex + 1;
@@ -213,6 +215,8 @@ const config = {
   roadWidth: 220,
   edgeWidth: 10,
   trackMargin: 0,
+  backgroundFit: 'contain',
+  trackSpace: 'viewport',
   recordSpacing: 28,
   maxSpeed: 260,
   accel: 220,
@@ -714,15 +718,16 @@ function updateGameMusic() {
 }
 
 function buildPathPoints() {
+  const frame = getBackgroundFrame();
   const margin = config.trackMargin;
-  const width = Math.max(1, state.viewport.width - margin * 2);
-  const height = Math.max(1, state.viewport.height - margin * 2);
+  const width = Math.max(1, frame.width - margin * 2);
+  const height = Math.max(1, frame.height - margin * 2);
   if (config.trackControlPoints.length < 2) {
     return [];
   }
   return config.trackControlPoints.map((point) => ({
-    x: margin + point.x * width,
-    y: margin + point.y * height
+    x: frame.x + margin + point.x * width,
+    y: frame.y + margin + point.y * height
   }));
 }
 
@@ -738,22 +743,24 @@ function screenToWorld(screenX, screenY) {
 }
 
 function worldToNormalized(point) {
+  const frame = getBackgroundFrame();
   const margin = config.trackMargin;
-  const width = Math.max(1, state.viewport.width - margin * 2);
-  const height = Math.max(1, state.viewport.height - margin * 2);
+  const width = Math.max(1, frame.width - margin * 2);
+  const height = Math.max(1, frame.height - margin * 2);
   return {
-    x: Math.min(1, Math.max(0, (point.x - margin) / width)),
-    y: Math.min(1, Math.max(0, (point.y - margin) / height))
+    x: Math.min(1, Math.max(0, (point.x - frame.x - margin) / width)),
+    y: Math.min(1, Math.max(0, (point.y - frame.y - margin) / height))
   };
 }
 
 function normalizedToWorld(point) {
+  const frame = getBackgroundFrame();
   const margin = config.trackMargin;
-  const width = Math.max(1, state.viewport.width - margin * 2);
-  const height = Math.max(1, state.viewport.height - margin * 2);
+  const width = Math.max(1, frame.width - margin * 2);
+  const height = Math.max(1, frame.height - margin * 2);
   return {
-    x: margin + point.x * width,
-    y: margin + point.y * height
+    x: frame.x + margin + point.x * width,
+    y: frame.y + margin + point.y * height
   };
 }
 
@@ -883,16 +890,8 @@ function toScreen(world) {
 
 function drawBackground() {
   if (backgroundReady) {
-    const width = state.viewport.width;
-    const height = state.viewport.height;
-    const imgWidth = backgroundImage.naturalWidth || width;
-    const imgHeight = backgroundImage.naturalHeight || height;
-    const scale = Math.min(width / imgWidth, height / imgHeight);
-    const drawWidth = imgWidth * scale;
-    const drawHeight = imgHeight * scale;
-    const offsetX = (width - drawWidth) / 2;
-    const offsetY = (height - drawHeight) / 2;
-    ctx.drawImage(backgroundImage, offsetX, offsetY, drawWidth, drawHeight);
+    const frame = getBackgroundFrame();
+    ctx.drawImage(backgroundImage, frame.x, frame.y, frame.width, frame.height);
     return;
   }
   ctx.fillStyle = '#0e1116';
@@ -983,15 +982,16 @@ function drawCar() {
 function drawRecorderOverlay() {
   if (!state.recording.enabled) return;
 
+  const frame = getBackgroundFrame();
   const margin = config.trackMargin;
-  const width = Math.max(1, state.viewport.width - margin * 2);
-  const height = Math.max(1, state.viewport.height - margin * 2);
+  const width = Math.max(1, frame.width - margin * 2);
+  const height = Math.max(1, frame.height - margin * 2);
 
   ctx.save();
   ctx.strokeStyle = 'rgba(104, 214, 255, 0.8)';
   ctx.lineWidth = 2;
   ctx.setLineDash([10, 8]);
-  ctx.strokeRect(margin, margin, width, height);
+  ctx.strokeRect(frame.x + margin, frame.y + margin, width, height);
   ctx.setLineDash([]);
   ctx.restore();
 
@@ -1022,6 +1022,50 @@ function drawRecorderOverlay() {
     ctx.fill();
   });
   ctx.restore();
+}
+
+function getBackgroundFrame() {
+  const width = state.viewport.width;
+  const height = state.viewport.height;
+  if (!backgroundReady) {
+    return { x: 0, y: 0, width, height };
+  }
+  const imgWidth = backgroundImage.naturalWidth || width;
+  const imgHeight = backgroundImage.naturalHeight || height;
+  const fit = config.backgroundFit === 'cover' ? 'cover' : 'contain';
+  const scale = fit === 'cover'
+    ? Math.max(width / imgWidth, height / imgHeight)
+    : Math.min(width / imgWidth, height / imgHeight);
+  const drawWidth = imgWidth * scale;
+  const drawHeight = imgHeight * scale;
+  const offsetX = (width - drawWidth) / 2;
+  const offsetY = (height - drawHeight) / 2;
+  return { x: offsetX, y: offsetY, width: drawWidth, height: drawHeight };
+}
+
+function migrateTrackPointsToBackground() {
+  if (config.trackSpace !== 'viewport') return;
+  if (config.trackControlPoints.length < 2) return;
+
+  const margin = config.trackMargin;
+  const oldWidth = Math.max(1, state.viewport.width - margin * 2);
+  const oldHeight = Math.max(1, state.viewport.height - margin * 2);
+  const frame = getBackgroundFrame();
+  const newWidth = Math.max(1, frame.width - margin * 2);
+  const newHeight = Math.max(1, frame.height - margin * 2);
+
+  config.trackControlPoints = config.trackControlPoints.map((point) => {
+    const worldX = margin + point.x * oldWidth;
+    const worldY = margin + point.y * oldHeight;
+    const nx = (worldX - frame.x - margin) / newWidth;
+    const ny = (worldY - frame.y - margin) / newHeight;
+    return {
+      x: Math.min(1, Math.max(0, nx)),
+      y: Math.min(1, Math.max(0, ny))
+    };
+  });
+
+  config.trackSpace = 'background';
 }
 
 function showEndScreen() {
@@ -1554,6 +1598,7 @@ window.addEventListener('keydown', (event) => {
       state.recording.points = [];
     } else if (state.recording.points.length >= 2) {
       config.trackControlPoints = [...state.recording.points];
+      config.trackSpace = 'background';
       resetGame();
     }
     state.paused = state.recording.enabled ? true : false;
