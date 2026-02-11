@@ -6,15 +6,61 @@ const modalHeader = document.querySelector('#modal .modal-header');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
 const modalClose = document.getElementById('modal-close');
+const completionModal = document.getElementById('completion-modal');
+const completionClose = document.getElementById('completion-close');
 const introModal = document.getElementById('intro-modal');
 const introStart = document.getElementById('intro-start');
 const endScreen = document.getElementById('end-screen');
 const accelButton = document.getElementById('accelerate-button');
-const hudHint = document.getElementById('hud-hint');
 const sidebarList = document.getElementById('stop-list');
 
 const keyState = new Set();
 let accelHeld = false;
+
+const rootStyle = getComputedStyle(document.documentElement);
+
+function getCssVar(name, fallback) {
+  const value = rootStyle.getPropertyValue(name).trim();
+  return value || fallback;
+}
+
+function parseRgb(color) {
+  if (!color) return null;
+  const value = color.trim();
+  if (value.startsWith('#')) {
+    let hex = value.slice(1);
+    if (hex.length === 3) {
+      hex = hex.split('').map((char) => char + char).join('');
+    }
+    if (hex.length !== 6) return null;
+    const num = Number.parseInt(hex, 16);
+    return {
+      r: (num >> 16) & 255,
+      g: (num >> 8) & 255,
+      b: num & 255
+    };
+  }
+  const match = value.match(/rgba?\(([^)]+)\)/);
+  if (!match) return null;
+  const parts = match[1].split(',').map((part) => Number.parseFloat(part.trim()));
+  if (parts.length < 3 || parts.some((part) => Number.isNaN(part))) return null;
+  return { r: parts[0], g: parts[1], b: parts[2] };
+}
+
+function withAlpha(color, alpha) {
+  const rgb = parseRgb(color);
+  if (!rgb) return color;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
+const theme = {
+  bg: getCssVar('--bg', '#0e1116'),
+  primary: getCssVar('--color-primary', '#f25f5c'),
+  secondary: getCssVar('--color-secondary', '#68d6ff'),
+  accent: getCssVar('--color-accent', '#ffb36a'),
+  success: getCssVar('--success', '#7bd389'),
+  ink: getCssVar('--ink', '#f3f5f8')
+};
 
 const runningSound = new Audio('sounds/running.mp3');
 runningSound.loop = true;
@@ -65,22 +111,13 @@ const stopData = [
       video: 'https://www.w3schools.com/html/mov_bbb.mp4'
     },
     games: [
-      { id: 'memory', type: 'memory', title: 'Jogo da memoria', description: 'Encontre os 6 pares.' },
       {
-        id: 'quiz',
-        type: 'quiz',
-        title: 'Pergunta rapida',
-        description: 'Escolha a melhor resposta.',
-        question: 'Qual atitude reduz riscos na via?',
-        options: ['Dirigir atento ao espaco', 'Ignorar a sinalizacao', 'Manter velocidade elevada'],
-        correctIndex: 0
-      },
-      {
-        id: 'sequence',
-        type: 'sequence',
-        title: 'Ordem correta',
-        description: 'Organize as etapas.',
-        steps: ['Verificar espelhos', 'Sinalizar manobra', 'Executar com controle', 'Retomar faixa']
+        id: 'puzzle',
+        type: 'puzzle',
+        title: 'Quebra cabeca',
+        description: 'Monte a imagem completa.',
+        image: 'imgs/puzzle.jpeg',
+        size: 3
       }
     ]
   },
@@ -208,6 +245,7 @@ const state = {
   stopProgress: new Map(),
   activeStopId: null,
   activeStageId: null,
+  completionShown: new Set(),
   lastTime: performance.now()
 };
 
@@ -474,16 +512,6 @@ function resize() {
   state.viewport.height = window.innerHeight;
 }
 
-function updateHudHint() {
-  if (!hudHint) return;
-  if (state.recording.enabled) {
-    hudHint.textContent =
-      'Modo trilha ativo: clique e arraste para desenhar. R para salvar, C para limpar.';
-    return;
-  }
-  hudHint.textContent = '';
-}
-
 function formatLapTime(ms) {
   const totalSeconds = Math.max(0, ms) / 1000;
   const minutes = Math.floor(totalSeconds / 60);
@@ -537,8 +565,7 @@ function renderSidebar() {
     const progress = getStopProgress(stop.id);
     const completed = isStopCompleted(stop.id);
     const unlocked = isStopUnlocked(stop.id);
-    const item = document.createElement('button');
-    item.type = 'button';
+    const item = document.createElement('div');
     item.className = 'stop-item';
     if (!unlocked) item.classList.add('locked');
     if (completed) item.classList.add('completed');
@@ -561,11 +588,6 @@ function renderSidebar() {
       meta.textContent = 'Conteudo pendente';
     }
     item.appendChild(meta);
-
-    item.addEventListener('click', () => {
-      if (!unlocked) return;
-      openStopModal(stop);
-    });
 
     sidebarList.appendChild(item);
   });
@@ -851,7 +873,7 @@ function drawBackground() {
     ctx.drawImage(backgroundImage, frame.x, frame.y, frame.width, frame.height);
     return;
   }
-  ctx.fillStyle = '#0e1116';
+  ctx.fillStyle = theme.bg;
   ctx.fillRect(0, 0, state.viewport.width, state.viewport.height);
 }
 
@@ -860,7 +882,7 @@ function drawPath() {
   ctx.save();
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.strokeStyle = withAlpha(theme.ink, 0.35);
   ctx.lineWidth = 6;
   ctx.beginPath();
   state.track.forEach((point, index) => {
@@ -890,11 +912,11 @@ function drawStops() {
     ctx.beginPath();
     ctx.arc(screen.x, screen.y, radius, 0, Math.PI * 2);
     const alpha = visited ? 0.6 + 0.2 * pulse : 0.75 + 0.2 * pulse;
-    const color = visited ? '123,211,137' : '242,95,92';
-    ctx.fillStyle = `rgba(${color},${alpha})`;
+    const color = visited ? theme.success : theme.primary;
+    ctx.fillStyle = withAlpha(color, alpha);
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.strokeStyle = withAlpha(theme.ink, 0.5);
     ctx.lineWidth = 2 * state.view.scale;
     ctx.stroke();
   });
@@ -924,8 +946,8 @@ function drawCar() {
     );
   } else {
     const sizeScale = 1.3;
-    ctx.fillStyle = '#f25f5c';
-    ctx.strokeStyle = '#0f1116';
+    ctx.fillStyle = theme.primary;
+    ctx.strokeStyle = theme.bg;
     ctx.lineWidth = 2 * state.view.scale;
     ctx.fillRect(
       -18 * state.view.scale * sizeScale,
@@ -961,7 +983,7 @@ function drawRecorderOverlay() {
   const height = Math.max(1, frame.height - margin * 2);
 
   ctx.save();
-  ctx.strokeStyle = 'rgba(104, 214, 255, 0.8)';
+  ctx.strokeStyle = withAlpha(theme.secondary, 0.8);
   ctx.lineWidth = 2;
   ctx.setLineDash([10, 8]);
   ctx.strokeRect(frame.x + margin, frame.y + margin, width, height);
@@ -971,7 +993,7 @@ function drawRecorderOverlay() {
   if (state.recording.points.length === 0) return;
 
   ctx.save();
-  ctx.strokeStyle = 'rgba(104, 214, 255, 0.8)';
+  ctx.strokeStyle = withAlpha(theme.secondary, 0.8);
   ctx.lineWidth = 2;
   ctx.beginPath();
 
@@ -986,7 +1008,7 @@ function drawRecorderOverlay() {
   });
 
   ctx.stroke();
-  ctx.fillStyle = 'rgba(104, 214, 255, 0.9)';
+  ctx.fillStyle = withAlpha(theme.secondary, 0.9);
   state.recording.points.forEach((point) => {
     const world = normalizedToWorld(point);
     const screen = toScreen(world);
@@ -1061,6 +1083,17 @@ function showEndScreen() {
   }
 }
 
+function showCompletionModal() {
+  if (!completionModal) return;
+  completionModal.classList.remove('hidden');
+  state.modalOpen = true;
+}
+
+function hideCompletionModal() {
+  if (!completionModal) return;
+  completionModal.classList.add('hidden');
+}
+
 function openStopModal(stop) {
   state.modalOpen = true;
   state.activeStopId = stop.id;
@@ -1074,6 +1107,7 @@ function closeStopModal() {
   if (state.activeStopId && !isStopCompleted(state.activeStopId)) {
     return;
   }
+  hideCompletionModal();
   modal.classList.add('hidden');
   state.modalOpen = false;
   state.activeStopId = null;
@@ -1149,9 +1183,17 @@ function renderStopModal(stop) {
 
   modalHeader.appendChild(stageList);
   modalClose.classList.add('modal-close');
-  modalClose.classList.add('btn-compact');
   modalClose.disabled = !completed;
   modalClose.textContent = completed ? 'Voltar para a trilha' : 'Conclua as etapas';
+  if (completed) {
+    modalClose.classList.add('primary');
+    modalClose.classList.remove('ghost');
+    modalClose.classList.add('modal-close--ready');
+  } else {
+    modalClose.classList.remove('primary');
+    modalClose.classList.add('ghost');
+    modalClose.classList.remove('modal-close--ready');
+  }
   modalHeader.appendChild(modalClose);
 
   const lastStopId = stopData[stopData.length - 1]?.id;
@@ -1188,6 +1230,10 @@ function advanceStage(stop, stages, currentStage) {
   }
   renderStopModal(stop);
   renderSidebar();
+  if (isStopCompleted(stop.id) && !state.completionShown.has(stop.id)) {
+    state.completionShown.add(stop.id);
+    showCompletionModal();
+  }
 }
 
 function renderContentStage(stop, progress, stages, stage) {
@@ -1266,6 +1312,8 @@ function renderGameStage(stop, progress, stages, stage) {
     renderQuizGame(board, game, onComplete);
   } else if (game.type === 'sequence') {
     renderSequenceGame(board, game, onComplete);
+  } else if (game.type === 'puzzle') {
+    renderPuzzleGame(board, game, onComplete);
   }
 }
 
@@ -1419,6 +1467,249 @@ function renderSequenceGame(container, game, onComplete) {
   });
 }
 
+function renderPuzzleGame(container, game, onComplete) {
+  const size = Math.max(2, Math.min(6, game.size || 3));
+  const total = size * size;
+  const pieceOrder = shuffleArray(Array.from({ length: total }, (_, i) => i));
+  const boardPositions = Array.from({ length: total }, () => null);
+  let selectedPiece = null;
+  let solved = false;
+  const drag = {
+    active: false,
+    pieceIndex: null,
+    source: null,
+    fromCell: null,
+    originEl: null,
+    ghost: null,
+    offsetX: 0,
+    offsetY: 0,
+    startX: 0,
+    startY: 0
+  };
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'puzzle-wrap';
+  wrapper.style.setProperty('--puzzle-size', size);
+  wrapper.style.setProperty('--puzzle-image', `url("${game.image}")`);
+  container.appendChild(wrapper);
+
+  const board = document.createElement('div');
+  board.className = 'puzzle-board';
+  wrapper.appendChild(board);
+
+  const tray = document.createElement('div');
+  tray.className = 'puzzle-tray';
+  wrapper.appendChild(tray);
+
+  const helper = document.createElement('p');
+  helper.className = 'puzzle-hint';
+  helper.textContent = 'Clique em uma peca e depois em uma casa do tabuleiro.';
+  container.appendChild(helper);
+
+  function cleanupDrag() {
+    if (drag.originEl) {
+      drag.originEl.classList.remove('puzzle-piece--dragging');
+    }
+    if (drag.ghost && drag.ghost.parentNode) {
+      drag.ghost.parentNode.removeChild(drag.ghost);
+    }
+    drag.active = false;
+    drag.pieceIndex = null;
+    drag.source = null;
+    drag.fromCell = null;
+    drag.originEl = null;
+    drag.ghost = null;
+  }
+
+  function startDrag(event, pieceIndex, source, fromCell, originEl) {
+    if (solved) return;
+    event.preventDefault();
+    drag.pieceIndex = pieceIndex;
+    drag.source = source;
+    drag.fromCell = fromCell;
+    drag.originEl = originEl;
+    drag.startX = event.clientX;
+    drag.startY = event.clientY;
+
+    const rect = originEl.getBoundingClientRect();
+    drag.offsetX = event.clientX - rect.left;
+    drag.offsetY = event.clientY - rect.top;
+
+    const handleMove = (moveEvent) => {
+      const dx = moveEvent.clientX - drag.startX;
+      const dy = moveEvent.clientY - drag.startY;
+      if (!drag.active) {
+        if (Math.hypot(dx, dy) < 6) {
+          return;
+        }
+        const ghost = originEl.cloneNode(true);
+        ghost.classList.add('puzzle-ghost');
+        ghost.style.width = `${rect.width}px`;
+        ghost.style.height = `${rect.height}px`;
+        ghost.style.left = `${rect.left}px`;
+        ghost.style.top = `${rect.top}px`;
+        ghost.style.setProperty('--puzzle-image', `url("${game.image}")`);
+        ghost.style.setProperty('--puzzle-size', size);
+        document.body.appendChild(ghost);
+        drag.ghost = ghost;
+        drag.originEl.classList.add('puzzle-piece--dragging');
+        drag.active = true;
+      }
+      if (drag.ghost) {
+        drag.ghost.style.left = `${moveEvent.clientX - drag.offsetX}px`;
+        drag.ghost.style.top = `${moveEvent.clientY - drag.offsetY}px`;
+      }
+    };
+
+    const handleEnd = (endEvent) => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleEnd);
+      window.removeEventListener('pointercancel', handleEnd);
+      if (!drag.active) {
+        cleanupDrag();
+        return;
+      }
+
+      const target = document.elementFromPoint(endEvent.clientX, endEvent.clientY);
+      const cell = target ? target.closest('.puzzle-cell') : null;
+      if (cell) {
+        const targetIndex = Number(cell.dataset.index);
+        if (!Number.isNaN(targetIndex)) {
+          if (drag.source === 'tray') {
+            removePieceFromTray(drag.pieceIndex);
+            placePiece(drag.pieceIndex, targetIndex);
+          } else if (drag.source === 'board') {
+            if (drag.fromCell !== null && drag.fromCell !== targetIndex) {
+              boardPositions[drag.fromCell] = null;
+              placePiece(drag.pieceIndex, targetIndex);
+            }
+          }
+        }
+      }
+
+      cleanupDrag();
+      selectedPiece = null;
+      if (isSolved()) {
+        solved = true;
+        onComplete();
+      }
+      renderAll();
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleEnd);
+    window.addEventListener('pointercancel', handleEnd);
+  }
+
+  function isSolved() {
+    return boardPositions.every((value, index) => value === index);
+  }
+
+  function placePiece(pieceIndex, cellIndex) {
+    const existing = boardPositions[cellIndex];
+    if (existing !== null) {
+      boardPositions[cellIndex] = pieceIndex;
+      pieceOrder.push(existing);
+    } else {
+      boardPositions[cellIndex] = pieceIndex;
+    }
+  }
+
+  function removePieceFromTray(pieceIndex) {
+    const idx = pieceOrder.indexOf(pieceIndex);
+    if (idx !== -1) pieceOrder.splice(idx, 1);
+  }
+
+  function renderBoard() {
+    board.innerHTML = '';
+    for (let i = 0; i < total; i += 1) {
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'puzzle-cell';
+      cell.dataset.index = String(i);
+
+      const pieceIndex = boardPositions[i];
+      if (pieceIndex !== null) {
+        const piece = document.createElement('span');
+        piece.className = 'puzzle-piece';
+        piece.dataset.piece = String(pieceIndex);
+        piece.style.setProperty('--piece-x', pieceIndex % size);
+        piece.style.setProperty('--piece-y', Math.floor(pieceIndex / size));
+        if (selectedPiece === pieceIndex) {
+          piece.classList.add('selected');
+        }
+        piece.addEventListener('pointerdown', (event) => {
+          startDrag(event, pieceIndex, 'board', i, piece);
+        });
+        cell.appendChild(piece);
+      }
+
+      cell.addEventListener('click', () => {
+        if (solved) return;
+        if (selectedPiece === null) {
+          if (boardPositions[i] !== null) {
+            pieceOrder.push(boardPositions[i]);
+            boardPositions[i] = null;
+            renderAll();
+          }
+          return;
+        }
+
+        removePieceFromTray(selectedPiece);
+        placePiece(selectedPiece, i);
+        selectedPiece = null;
+        if (isSolved()) {
+          solved = true;
+          onComplete();
+        }
+        renderAll();
+      });
+
+      board.appendChild(cell);
+    }
+  }
+
+  function renderTray() {
+    tray.innerHTML = '';
+    const trayTitle = document.createElement('div');
+    trayTitle.className = 'puzzle-tray-title';
+    trayTitle.textContent = 'Pecas';
+    tray.appendChild(trayTitle);
+
+    const trayGrid = document.createElement('div');
+    trayGrid.className = 'puzzle-tray-grid';
+    tray.appendChild(trayGrid);
+
+    pieceOrder.forEach((pieceIndex) => {
+      const piece = document.createElement('button');
+      piece.type = 'button';
+      piece.className = 'puzzle-piece';
+      piece.dataset.piece = String(pieceIndex);
+      piece.style.setProperty('--piece-x', pieceIndex % size);
+      piece.style.setProperty('--piece-y', Math.floor(pieceIndex / size));
+      if (selectedPiece === pieceIndex) {
+        piece.classList.add('selected');
+      }
+      piece.addEventListener('pointerdown', (event) => {
+        startDrag(event, pieceIndex, 'tray', null, piece);
+      });
+      piece.addEventListener('click', () => {
+        if (solved) return;
+        selectedPiece = selectedPiece === pieceIndex ? null : pieceIndex;
+        renderAll();
+      });
+      trayGrid.appendChild(piece);
+    });
+  }
+
+  function renderAll() {
+    renderBoard();
+    renderTray();
+  }
+
+  renderAll();
+}
+
 function resetGame() {
   state.progress = 0;
   state.speed = 0;
@@ -1432,6 +1723,7 @@ function resetGame() {
   state.stopProgress = new Map();
   state.activeStopId = null;
   state.activeStageId = null;
+  state.completionShown = new Set();
   state.modalOpen = false;
   state.paused = false;
   state.lapStartTime = null;
@@ -1444,6 +1736,7 @@ function resetGame() {
   if (endScreen) {
     endScreen.classList.add('hidden');
   }
+  hideCompletionModal();
   buildTrack();
   renderSidebar();
 }
@@ -1583,7 +1876,6 @@ window.addEventListener('keydown', (event) => {
       resetGame();
     }
     state.paused = state.recording.enabled ? true : false;
-    updateHudHint();
   }
 
   if (event.key.toLowerCase() === 'c' && state.recording.enabled) {
@@ -1645,6 +1937,12 @@ window.addEventListener('mouseup', () => {
 });
 
 modalClose.addEventListener('click', closeStopModal);
+if (completionClose) {
+  completionClose.addEventListener('click', () => {
+    hideCompletionModal();
+    closeStopModal();
+  });
+}
 if (introStart && introModal) {
     introStart.addEventListener('click', () => {
       introModal.classList.add('hidden');
@@ -1656,7 +1954,6 @@ if (introStart && introModal) {
 
 resize();
 resetGame();
-updateHudHint();
 if (introModal && !introModal.classList.contains('hidden')) {
   state.paused = true;
 }

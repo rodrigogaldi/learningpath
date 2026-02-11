@@ -10,16 +10,11 @@
     <aside id="sidebar" class="sidebar" aria-label="Stop points">
       <div class="sidebar-header">
         <img class="sidebar-logo" src="imgs/logo_empresa.jpg" alt="Logo da empresa" />
-        <span class="sidebar-title">Stop Points</span>
-        <span class="sidebar-subtitle">Complete cada etapa</span>
+        <span class="sidebar-title">Learn &amp; FUN</span>
+        <span class="sidebar-subtitle">Aprenda se divertindo nesse fantástico game</span>
       </div>
       <div id="stop-list" class="stop-list"></div>
     </aside>
-
-    <div id="hud">
-      <div class="brand">Learning Path</div>
-      <div id="hud-hint" class="hint"></div>
-    </div>
 
     <canvas id="game"></canvas>
     <div id="orientation-overlay" class="orientation-overlay" aria-hidden="true">
@@ -37,12 +32,13 @@
     <div id="intro-modal" class="modal" role="dialog" aria-modal="true">
       <div class="intro-card">
         <div class="intro-content">
-          <h2>Orientacoes do jogo</h2>
+          <h2>Orientações do jogo</h2>
           <ul>
-            <li>Use as setas do teclado para dirigir o carrinho.</li>
-            <li>Ao chegar nas paradas, leia as instrucoes e continue.</li>
+            <li>Utilize a seta para cima ou para baixo para caminhar no mapa.</li>
+            <li>Se preferir aperte o botão na tela.</li>
+            <li>Ao chegar nas paradas, leia as instruções e continue.</li>
           </ul>
-          <button id="intro-start" class="primary">Iniciar trilha</button>
+          <button id="intro-start" class="primary">Iniciar Jogo</button>
         </div>
         <div class="intro-media">
           <img src="imgs/logo.jpeg" alt="Logo Learning Path" />
@@ -57,6 +53,14 @@
           <button id="modal-close" class="ghost">Voltar para a trilha</button>
         </div>
         <div id="modal-body" class="modal-body"></div>
+      </div>
+    </div>
+
+    <div id="completion-modal" class="modal hidden completion-modal" role="dialog" aria-modal="true">
+      <div class="completion-card">
+        <h2>Parabéns</h2>
+        <p>A etapa foi concluída.</p>
+        <button id="completion-close" class="primary completion-button">Voltar para a trilha</button>
       </div>
     </div>
 
