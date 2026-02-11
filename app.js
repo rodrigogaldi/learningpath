@@ -6,14 +6,61 @@ const modalHeader = document.querySelector('#modal .modal-header');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
 const modalClose = document.getElementById('modal-close');
+const completionModal = document.getElementById('completion-modal');
+const completionClose = document.getElementById('completion-close');
 const introModal = document.getElementById('intro-modal');
 const introStart = document.getElementById('intro-start');
 const endScreen = document.getElementById('end-screen');
 const accelButton = document.getElementById('accelerate-button');
-const hudHint = document.getElementById('hud-hint');
+const sidebarList = document.getElementById('stop-list');
 
 const keyState = new Set();
 let accelHeld = false;
+
+const rootStyle = getComputedStyle(document.documentElement);
+
+function getCssVar(name, fallback) {
+  const value = rootStyle.getPropertyValue(name).trim();
+  return value || fallback;
+}
+
+function parseRgb(color) {
+  if (!color) return null;
+  const value = color.trim();
+  if (value.startsWith('#')) {
+    let hex = value.slice(1);
+    if (hex.length === 3) {
+      hex = hex.split('').map((char) => char + char).join('');
+    }
+    if (hex.length !== 6) return null;
+    const num = Number.parseInt(hex, 16);
+    return {
+      r: (num >> 16) & 255,
+      g: (num >> 8) & 255,
+      b: num & 255
+    };
+  }
+  const match = value.match(/rgba?\(([^)]+)\)/);
+  if (!match) return null;
+  const parts = match[1].split(',').map((part) => Number.parseFloat(part.trim()));
+  if (parts.length < 3 || parts.some((part) => Number.isNaN(part))) return null;
+  return { r: parts[0], g: parts[1], b: parts[2] };
+}
+
+function withAlpha(color, alpha) {
+  const rgb = parseRgb(color);
+  if (!rgb) return color;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
+const theme = {
+  bg: getCssVar('--bg', '#0e1116'),
+  primary: getCssVar('--color-primary', '#f25f5c'),
+  secondary: getCssVar('--color-secondary', '#68d6ff'),
+  accent: getCssVar('--color-accent', '#ffb36a'),
+  success: getCssVar('--success', '#7bd389'),
+  ink: getCssVar('--ink', '#f3f5f8')
+};
 
 const runningSound = new Audio('sounds/running.mp3');
 runningSound.loop = true;
@@ -38,6 +85,8 @@ const backgroundImage = new Image();
 let backgroundReady = false;
 backgroundImage.addEventListener('load', () => {
   backgroundReady = true;
+  migrateTrackPointsToBackground();
+  buildTrack();
 });
 backgroundImage.addEventListener('error', () => {
   const nextIndex = backgroundSourceIndex + 1;
@@ -52,27 +101,110 @@ const stopData = [
   {
     id: 'p1',
     name: 'Parada 1 - Integridade',
-    text: 'Reflita sobre as boas praticas ao dirigir neste trecho.',
-    distance: 520
+    distance: 520,
+    content: {
+      title: 'Etapa de conteudo',
+      body:
+        'Reflita sobre as boas praticas ao dirigir neste trecho. Lorem ipsum dolor sit amet, consectetur adipiscing elit. ' +
+        'Suspendisse varius, massa sed facilisis luctus, lorem justo dapibus eros, vitae consequat lacus massa at velit. ' +
+        'Use este texto apenas para teste visual da area de conteudo.',
+      video: 'https://www.w3schools.com/html/mov_bbb.mp4'
+    },
+    games: [
+      {
+        id: 'puzzle',
+        type: 'puzzle',
+        title: 'Quebra cabeca',
+        description: 'Monte a imagem completa.',
+        image: 'imgs/puzzle.jpeg',
+        size: 3
+      }
+    ]
   },
   {
     id: 'p2',
     name: 'Parada 2 - Comunicacao',
-    text: 'Descreva como voce comunica um incidente na via.',
-    distance: 1180
+    distance: 1180,
+    content: {
+      title: 'Etapa de conteudo',
+      body: 'Descreva como voce comunica um incidente na via.'
+    },
+    games: [
+      { id: 'memory', type: 'memory', title: 'Jogo da memoria', description: 'Encontre os 6 pares.' },
+      {
+        id: 'quiz',
+        type: 'quiz',
+        title: 'Pergunta rapida',
+        description: 'Escolha a melhor resposta.',
+        question: 'Qual canal deve ser usado para reportar incidentes?',
+        options: ['Canal oficial da equipe', 'Grupo pessoal', 'Mensagem privada sem registro'],
+        correctIndex: 0
+      },
+      {
+        id: 'sequence',
+        type: 'sequence',
+        title: 'Ordem correta',
+        description: 'Organize as etapas.',
+        steps: ['Identificar o local', 'Comunicar ao lider', 'Registrar evidencias', 'Aguardar orientacao']
+      }
+    ]
   },
   {
     id: 'p3',
     name: 'Parada 3 - Procedimentos',
-    text: 'Revise o video com as etapas do treinamento.',
-    video: 'https://www.w3schools.com/html/mov_bbb.mp4',
-    distance: 1760
+    distance: 1760,
+    content: {
+      title: 'Etapa de conteudo',
+      body: 'Revise o video com as etapas do treinamento.',
+      video: 'https://www.w3schools.com/html/mov_bbb.mp4'
+    },
+    games: [
+      { id: 'memory', type: 'memory', title: 'Jogo da memoria', description: 'Encontre os 6 pares.' },
+      {
+        id: 'quiz',
+        type: 'quiz',
+        title: 'Pergunta rapida',
+        description: 'Escolha a melhor resposta.',
+        question: 'Quando registrar a conclusao de uma etapa?',
+        options: ['Ao finalizar o procedimento', 'Antes de iniciar', 'Somente no fim do dia'],
+        correctIndex: 0
+      },
+      {
+        id: 'sequence',
+        type: 'sequence',
+        title: 'Ordem correta',
+        description: 'Organize as etapas.',
+        steps: ['Checar equipamentos', 'Executar tarefa', 'Validar resultado', 'Registrar no sistema']
+      }
+    ]
   },
   {
     id: 'p4',
     name: 'Parada 4 - Decisao',
-    text: 'Quais escolhas reduzem riscos para a equipe?',
-    distance: 2360
+    distance: 2360,
+    content: {
+      title: 'Etapa de conteudo',
+      body: 'Quais escolhas reduzem riscos para a equipe?'
+    },
+    games: [
+      { id: 'memory', type: 'memory', title: 'Jogo da memoria', description: 'Encontre os 6 pares.' },
+      {
+        id: 'quiz',
+        type: 'quiz',
+        title: 'Pergunta rapida',
+        description: 'Escolha a melhor resposta.',
+        question: 'Qual decisao prioriza seguranca?',
+        options: ['Pausar e avaliar riscos', 'Ignorar sinais de alerta', 'Acelerar para terminar logo'],
+        correctIndex: 0
+      },
+      {
+        id: 'sequence',
+        type: 'sequence',
+        title: 'Ordem correta',
+        description: 'Organize as etapas.',
+        steps: ['Mapear riscos', 'Definir plano', 'Executar com cuidado', 'Revisar resultados']
+      }
+    ]
   }
 ];
 
@@ -110,6 +242,10 @@ const state = {
   lapStartTime: null,
   lapTime: 0,
   stopTimes: new Map(),
+  stopProgress: new Map(),
+  activeStopId: null,
+  activeStageId: null,
+  completionShown: new Set(),
   lastTime: performance.now()
 };
 
@@ -117,6 +253,8 @@ const config = {
   roadWidth: 220,
   edgeWidth: 10,
   trackMargin: 0,
+  backgroundFit: 'contain',
+  trackSpace: 'background',
   recordSpacing: 28,
   maxSpeed: 260,
   accel: 220,
@@ -127,284 +265,240 @@ const config = {
   stopRadius: 45,
  trackControlPoints: [
   {
-    "x": 0.23489583333333333,
-    "y": 0.16045197740112993
+    "x": 0.10816891658013153,
+    "y": 0.16926272066458983
   },
   {
-    "x": 0.20416666666666666,
-    "y": 0.1977401129943503
+    "x": 0.07147802007615092,
+    "y": 0.20249221183800623
   },
   {
-    "x": 0.19791666666666666,
-    "y": 0.25536723163841807
+    "x": 0.0680166147455867,
+    "y": 0.24714434060228452
   },
   {
-    "x": 0.21979166666666666,
-    "y": 0.3050847457627119
+    "x": 0.10539979231568017,
+    "y": 0.30218068535825543
   },
   {
-    "x": 0.25416666666666665,
-    "y": 0.327683615819209
+    "x": 0.1490134994807892,
+    "y": 0.32398753894080995
   },
   {
-    "x": 0.2791666666666667,
-    "y": 0.34576271186440677
+    "x": 0.19124264451367254,
+    "y": 0.35514018691588783
   },
   {
-    "x": 0.2921875,
-    "y": 0.37966101694915255
+    "x": 0.1953963309103496,
+    "y": 0.39979231568016615
   },
   {
-    "x": 0.28072916666666664,
-    "y": 0.41129943502824856
+    "x": 0.1538594669435791,
+    "y": 0.43509865005192105
   },
   {
-    "x": 0.25416666666666665,
-    "y": 0.4327683615819209
+    "x": 0.10747663551401869,
+    "y": 0.4683281412253375
   },
   {
-    "x": 0.23125,
-    "y": 0.4576271186440678
+    "x": 0.07909311180339218,
+    "y": 0.5025960539979232
   },
   {
-    "x": 0.21145833333333333,
-    "y": 0.47909604519774013
+    "x": 0.06593977154724819,
+    "y": 0.5482866043613707
   },
   {
-    "x": 0.20052083333333334,
-    "y": 0.5276836158192091
+    "x": 0.07840083073727934,
+    "y": 0.6137071651090342
   },
   {
-    "x": 0.20729166666666668,
-    "y": 0.5932203389830508
+    "x": 0.12132225683627552,
+    "y": 0.6261682242990654
   },
   {
-    "x": 0.225,
-    "y": 0.6237288135593221
+    "x": 0.16701280719972308,
+    "y": 0.6386292834890965
   },
   {
-    "x": 0.25677083333333334,
-    "y": 0.6305084745762712
+    "x": 0.2251644167532018,
+    "y": 0.6469366562824507
   },
   {
-    "x": 0.29322916666666665,
-    "y": 0.63954802259887
+    "x": 0.2660089996538595,
+    "y": 0.667705088265836
   },
   {
-    "x": 0.32395833333333335,
-    "y": 0.6576271186440678
+    "x": 0.2860851505711319,
+    "y": 0.7258566978193146
   },
   {
-    "x": 0.346875,
-    "y": 0.6892655367231638
+    "x": 0.31169955001730704,
+    "y": 0.7829698857736241
   },
   {
-    "x": 0.35520833333333335,
-    "y": 0.7367231638418079
+    "x": 0.3594669435790931,
+    "y": 0.8203530633437176
   },
   {
-    "x": 0.371875,
-    "y": 0.7966101694915254
+    "x": 0.41969539633091035,
+    "y": 0.8245067497403946
   },
   {
-    "x": 0.403125,
-    "y": 0.8293785310734463
+    "x": 0.47230875735548633,
+    "y": 0.8006230529595015
   },
   {
-    "x": 0.4432291666666667,
-    "y": 0.8361581920903954
+    "x": 0.5020768431983386,
+    "y": 0.7673935617860852
   },
   {
-    "x": 0.47708333333333336,
-    "y": 0.8124293785310734
+    "x": 0.5470751124956732,
+    "y": 0.735202492211838
   },
   {
-    "x": 0.5,
-    "y": 0.7774011299435029
+    "x": 0.5823814468674282,
+    "y": 0.7040498442367601
   },
   {
-    "x": 0.5317708333333333,
-    "y": 0.751412429378531
+    "x": 0.6349948078920041,
+    "y": 0.660436137071651
   },
   {
-    "x": 0.5442708333333334,
-    "y": 0.7231638418079096
+    "x": 0.6460713049498096,
+    "y": 0.6095534787123572
   },
   {
-    "x": 0.5734375,
-    "y": 0.6926553672316385
+    "x": 0.6253028729664244,
+    "y": 0.5379023883696781
   },
   {
-    "x": 0.5885416666666666,
-    "y": 0.656497175141243
+    "x": 0.5796123226029768,
+    "y": 0.5202492211838006
   },
   {
-    "x": 0.603125,
-    "y": 0.6090395480225989
+    "x": 0.5297680858428522,
+    "y": 0.5181723779854621
   },
   {
-    "x": 0.5947916666666667,
-    "y": 0.5536723163841808
+    "x": 0.4633091034960194,
+    "y": 0.505711318795431
   },
   {
-    "x": 0.5739583333333333,
-    "y": 0.5310734463276836
+    "x": 0.4093111803392177,
+    "y": 0.48701973001038423
   },
   {
-    "x": 0.5458333333333333,
-    "y": 0.511864406779661
+    "x": 0.37677397023191417,
+    "y": 0.4257528556593977
   },
   {
-    "x": 0.5098958333333333,
-    "y": 0.5129943502824859
+    "x": 0.39823468328141226,
+    "y": 0.367601246105919
   },
   {
-    "x": 0.46927083333333336,
-    "y": 0.5084745762711864
+    "x": 0.43146417445482865,
+    "y": 0.3302180685358255
   },
   {
-    "x": 0.4354166666666667,
-    "y": 0.4847457627118644
+    "x": 0.48130841121495327,
+    "y": 0.3032191069574247
   },
   {
-    "x": 0.4171875,
-    "y": 0.4429378531073446
+    "x": 0.5401523018345449,
+    "y": 0.29387331256490135
   },
   {
-    "x": 0.4171875,
-    "y": 0.3887005649717514
+    "x": 0.592073381793008,
+    "y": 0.28868120456905505
   },
   {
-    "x": 0.4375,
-    "y": 0.3423728813559322
+    "x": 0.6502249913464867,
+    "y": 0.2834890965732087
   },
   {
-    "x": 0.46875,
-    "y": 0.31186440677966104
+    "x": 0.6827622014537902,
+    "y": 0.23883696780893043
   },
   {
-    "x": 0.4979166666666667,
-    "y": 0.2983050847457627
+    "x": 0.6613014884042921,
+    "y": 0.181723779854621
   },
   {
-    "x": 0.5276041666666667,
-    "y": 0.2903954802259887
+    "x": 0.683454482519903,
+    "y": 0.12461059190031153
   },
   {
-    "x": 0.5729166666666666,
-    "y": 0.28926553672316385
+    "x": 0.7381446867428176,
+    "y": 0.11318795430944964
   },
   {
-    "x": 0.6010416666666667,
-    "y": 0.2858757062146893
+    "x": 0.7942194530979577,
+    "y": 0.10695742471443406
   },
   {
-    "x": 0.6203125,
-    "y": 0.2497175141242938
+    "x": 0.8641398407753548,
+    "y": 0.13187954309449637
   },
   {
-    "x": 0.6119791666666666,
-    "y": 0.19887005649717515
+    "x": 0.9209068881966078,
+    "y": 0.1921079958463136
   },
   {
-    "x": 0.6057291666666667,
-    "y": 0.1615819209039548
+    "x": 0.9430598823122187,
+    "y": 0.2533748701973001
   },
   {
-    "x": 0.6192708333333333,
-    "y": 0.12542372881355932
+    "x": 0.9257528556593977,
+    "y": 0.3094496365524403
   },
   {
-    "x": 0.6505208333333333,
-    "y": 0.10734463276836158
+    "x": 0.8800623052959502,
+    "y": 0.34475597092419524
   },
   {
-    "x": 0.6796875,
-    "y": 0.103954802259887
+    "x": 0.8399100034614053,
+    "y": 0.36656282450674976
   },
   {
-    "x": 0.7088541666666667,
-    "y": 0.10282485875706214
+    "x": 0.8122187608168917,
+    "y": 0.4205607476635514
   },
   {
-    "x": 0.7390625,
-    "y": 0.11412429378531073
+    "x": 0.8489096573208723,
+    "y": 0.4672897196261682
   },
   {
-    "x": 0.7630208333333334,
-    "y": 0.13898305084745763
+    "x": 0.9001384562132225,
+    "y": 0.5088265835929388
   },
   {
-    "x": 0.7854166666666667,
-    "y": 0.17401129943502824
+    "x": 0.9409830391138803,
+    "y": 0.5597092419522326
   },
   {
-    "x": 0.7989583333333333,
-    "y": 0.20903954802259886
+    "x": 0.9513672551055729,
+    "y": 0.6355140186915887
   },
   {
-    "x": 0.8015625,
-    "y": 0.2576271186440678
+    "x": 0.9354447905849775,
+    "y": 0.7019730010384216
   },
   {
-    "x": 0.7911458333333333,
-    "y": 0.29491525423728815
+    "x": 0.9125995154032537,
+    "y": 0.7580477673935618
   },
   {
-    "x": 0.7677083333333333,
-    "y": 0.327683615819209
+    "x": 0.8599861543786778,
+    "y": 0.7964693665628245
   },
   {
-    "x": 0.7421875,
-    "y": 0.35706214689265536
+    "x": 0.7990654205607477,
+    "y": 0.833852544132918
   },
   {
-    "x": 0.7119791666666667,
-    "y": 0.39322033898305087
-  },
-  {
-    "x": 0.7182291666666667,
-    "y": 0.43389830508474575
-  },
-  {
-    "x": 0.7479166666666667,
-    "y": 0.4768361581920904
-  },
-  {
-    "x": 0.7822916666666667,
-    "y": 0.5073446327683616
-  },
-  {
-    "x": 0.8052083333333333,
-    "y": 0.5559322033898305
-  },
-  {
-    "x": 0.809375,
-    "y": 0.6090395480225989
-  },
-  {
-    "x": 0.8104166666666667,
-    "y": 0.6655367231638418
-  },
-  {
-    "x": 0.7979166666666667,
-    "y": 0.7152542372881356
-  },
-  {
-    "x": 0.7661458333333333,
-    "y": 0.7706214689265537
-  },
-  {
-    "x": 0.740625,
-    "y": 0.7966101694915254
-  },
-  {
-    "x": 0.6890625,
-    "y": 0.8384180790960452
-  },
-  {
-    "x": 0.671875,
-    "y": 0.8870056497175142
+    "x": 0.7485289027345102,
+    "y": 0.8733125649013499
   }
 ]
 };
@@ -418,22 +512,136 @@ function resize() {
   state.viewport.height = window.innerHeight;
 }
 
-function updateHudHint() {
-  if (!hudHint) return;
-  if (state.recording.enabled) {
-    hudHint.textContent =
-      'Modo trilha ativo: clique e arraste para desenhar. R para salvar, C para limpar.';
-    return;
-  }
-  hudHint.textContent = '';
-}
-
 function formatLapTime(ms) {
   const totalSeconds = Math.max(0, ms) / 1000;
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = Math.floor(totalSeconds % 60);
   const tenths = Math.floor((totalSeconds * 10) % 10);
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${tenths}`;
+}
+
+function shuffleArray(items) {
+  const array = [...items];
+  for (let i = array.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function getStopIndex(stopId) {
+  return stopData.findIndex((stop) => stop.id === stopId);
+}
+
+function getStopProgress(stopId) {
+  if (!state.stopProgress.has(stopId)) {
+    state.stopProgress.set(stopId, {
+      contentDone: false,
+      gamesDone: new Set()
+    });
+  }
+  return state.stopProgress.get(stopId);
+}
+
+function isStopCompleted(stopId) {
+  const stop = stopData.find((entry) => entry.id === stopId);
+  if (!stop) return false;
+  const progress = getStopProgress(stopId);
+  return progress.contentDone && progress.gamesDone.size >= stop.games.length;
+}
+
+function isStopUnlocked(stopId) {
+  const index = getStopIndex(stopId);
+  if (index <= 0) return true;
+  const prevStop = stopData[index - 1];
+  return prevStop ? isStopCompleted(prevStop.id) : true;
+}
+
+function renderSidebar() {
+  if (!sidebarList) return;
+  sidebarList.innerHTML = '';
+
+  stopData.forEach((stop, index) => {
+    const progress = getStopProgress(stop.id);
+    const completed = isStopCompleted(stop.id);
+    const unlocked = isStopUnlocked(stop.id);
+    const item = document.createElement('div');
+    item.className = 'stop-item';
+    if (!unlocked) item.classList.add('locked');
+    if (completed) item.classList.add('completed');
+    if (state.activeStopId === stop.id) item.classList.add('active');
+
+    const title = document.createElement('div');
+    title.className = 'stop-item-title';
+    title.textContent = stop.name || `Parada ${index + 1}`;
+    item.appendChild(title);
+
+    const meta = document.createElement('div');
+    meta.className = 'stop-item-meta';
+    if (!unlocked) {
+      meta.textContent = 'Bloqueado ate concluir a parada anterior';
+    } else if (completed) {
+      meta.textContent = 'Concluido';
+    } else if (progress.contentDone) {
+      meta.textContent = `Games concluidos: ${progress.gamesDone.size}/${stop.games.length}`;
+    } else {
+      meta.textContent = 'Conteudo pendente';
+    }
+    item.appendChild(meta);
+
+    sidebarList.appendChild(item);
+  });
+}
+
+function areAllStopsCompleted() {
+  return stopData.every((stop) => isStopCompleted(stop.id));
+}
+
+function buildStopStages(stop) {
+  const stages = [
+    {
+      id: 'content',
+      type: 'content',
+      title: stop.content?.title || 'Etapa de conteudo'
+    }
+  ];
+  stop.games.forEach((game) => {
+    stages.push({
+      id: `game:${game.id}`,
+      type: 'game',
+      title: game.title,
+      game
+    });
+  });
+  return stages;
+}
+
+function isStageCompleted(stop, stage, progress) {
+  if (stage.type === 'content') {
+    return progress.contentDone;
+  }
+  return progress.gamesDone.has(stage.game.id);
+}
+
+function isStageUnlocked(stages, stop, progress, index) {
+  if (index === 0) return true;
+  const prevStage = stages[index - 1];
+  return isStageCompleted(stop, prevStage, progress);
+}
+
+function resolveActiveStage(stages, stop, progress) {
+  let targetIndex = stages.findIndex((stage) => !isStageCompleted(stop, stage, progress));
+  if (targetIndex === -1) {
+    targetIndex = Math.max(0, stages.length - 1);
+  }
+
+  const storedIndex = stages.findIndex((stage) => stage.id === state.activeStageId);
+  if (storedIndex !== -1 && isStageUnlocked(stages, stop, progress, storedIndex)) {
+    targetIndex = storedIndex;
+  }
+
+  state.activeStageId = stages[targetIndex]?.id || null;
+  return stages[targetIndex] || null;
 }
 
 function unlockRunningSound() {
@@ -476,7 +684,8 @@ function updateRunningSound() {
 
 function updateGameMusic() {
   if (!gameMusicUnlocked) return;
-  if (endScreen && !endScreen.classList.contains('hidden')) {
+  const introOpen = introModal && !introModal.classList.contains('hidden');
+  if (state.modalOpen || introOpen || (endScreen && !endScreen.classList.contains('hidden'))) {
     if (!gameMusic.paused) {
       gameMusic.pause();
     }
@@ -488,15 +697,16 @@ function updateGameMusic() {
 }
 
 function buildPathPoints() {
+  const frame = getBackgroundFrame();
   const margin = config.trackMargin;
-  const width = Math.max(1, state.viewport.width - margin * 2);
-  const height = Math.max(1, state.viewport.height - margin * 2);
+  const width = Math.max(1, frame.width - margin * 2);
+  const height = Math.max(1, frame.height - margin * 2);
   if (config.trackControlPoints.length < 2) {
     return [];
   }
   return config.trackControlPoints.map((point) => ({
-    x: margin + point.x * width,
-    y: margin + point.y * height
+    x: frame.x + margin + point.x * width,
+    y: frame.y + margin + point.y * height
   }));
 }
 
@@ -512,22 +722,24 @@ function screenToWorld(screenX, screenY) {
 }
 
 function worldToNormalized(point) {
+  const frame = getBackgroundFrame();
   const margin = config.trackMargin;
-  const width = Math.max(1, state.viewport.width - margin * 2);
-  const height = Math.max(1, state.viewport.height - margin * 2);
+  const width = Math.max(1, frame.width - margin * 2);
+  const height = Math.max(1, frame.height - margin * 2);
   return {
-    x: Math.min(1, Math.max(0, (point.x - margin) / width)),
-    y: Math.min(1, Math.max(0, (point.y - margin) / height))
+    x: Math.min(1, Math.max(0, (point.x - frame.x - margin) / width)),
+    y: Math.min(1, Math.max(0, (point.y - frame.y - margin) / height))
   };
 }
 
 function normalizedToWorld(point) {
+  const frame = getBackgroundFrame();
   const margin = config.trackMargin;
-  const width = Math.max(1, state.viewport.width - margin * 2);
-  const height = Math.max(1, state.viewport.height - margin * 2);
+  const width = Math.max(1, frame.width - margin * 2);
+  const height = Math.max(1, frame.height - margin * 2);
   return {
-    x: margin + point.x * width,
-    y: margin + point.y * height
+    x: frame.x + margin + point.x * width,
+    y: frame.y + margin + point.y * height
   };
 }
 
@@ -657,19 +869,11 @@ function toScreen(world) {
 
 function drawBackground() {
   if (backgroundReady) {
-    const width = state.viewport.width;
-    const height = state.viewport.height;
-    const imgWidth = backgroundImage.naturalWidth || width;
-    const imgHeight = backgroundImage.naturalHeight || height;
-    const scale = Math.min(width / imgWidth, height / imgHeight);
-    const drawWidth = imgWidth * scale;
-    const drawHeight = imgHeight * scale;
-    const offsetX = (width - drawWidth) / 2;
-    const offsetY = (height - drawHeight) / 2;
-    ctx.drawImage(backgroundImage, offsetX, offsetY, drawWidth, drawHeight);
+    const frame = getBackgroundFrame();
+    ctx.drawImage(backgroundImage, frame.x, frame.y, frame.width, frame.height);
     return;
   }
-  ctx.fillStyle = '#0e1116';
+  ctx.fillStyle = theme.bg;
   ctx.fillRect(0, 0, state.viewport.width, state.viewport.height);
 }
 
@@ -678,7 +882,7 @@ function drawPath() {
   ctx.save();
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.strokeStyle = withAlpha(theme.ink, 0.35);
   ctx.lineWidth = 6;
   ctx.beginPath();
   state.track.forEach((point, index) => {
@@ -702,16 +906,17 @@ function drawStops() {
     const marker = getPointAt(distance);
     const screen = toScreen(marker);
     const visited = state.visited.has(stop.id);
-    const baseRadius = visited ? 10 : 14;
-    const radius = (baseRadius + (visited ? 2 : 4) * pulse) * state.view.scale;
+    const baseRadius = 14;
+    const radius = (baseRadius + 4 * pulse) * state.view.scale;
 
     ctx.beginPath();
     ctx.arc(screen.x, screen.y, radius, 0, Math.PI * 2);
-    const alpha = visited ? 0.35 + 0.15 * pulse : 0.75 + 0.2 * pulse;
-    ctx.fillStyle = `rgba(242,95,92,${alpha})`;
+    const alpha = visited ? 0.6 + 0.2 * pulse : 0.75 + 0.2 * pulse;
+    const color = visited ? theme.success : theme.primary;
+    ctx.fillStyle = withAlpha(color, alpha);
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.strokeStyle = withAlpha(theme.ink, 0.5);
     ctx.lineWidth = 2 * state.view.scale;
     ctx.stroke();
   });
@@ -729,7 +934,7 @@ function drawCar() {
   ctx.translate(screen.x, screen.y + bob);
 
   if (carSpriteReady) {
-    const targetWidth = 132 * state.view.scale * 0.5;
+    const targetWidth = 132 * state.view.scale * 0.65;
     const ratio = carSprite.naturalWidth / carSprite.naturalHeight || 1;
     const targetHeight = targetWidth / ratio;
     ctx.drawImage(
@@ -740,14 +945,30 @@ function drawCar() {
       targetHeight
     );
   } else {
-    ctx.fillStyle = '#f25f5c';
-    ctx.strokeStyle = '#0f1116';
+    const sizeScale = 1.3;
+    ctx.fillStyle = theme.primary;
+    ctx.strokeStyle = theme.bg;
     ctx.lineWidth = 2 * state.view.scale;
-    ctx.fillRect(-18 * state.view.scale, -10 * state.view.scale, 36 * state.view.scale, 20 * state.view.scale);
-    ctx.strokeRect(-18 * state.view.scale, -10 * state.view.scale, 36 * state.view.scale, 20 * state.view.scale);
+    ctx.fillRect(
+      -18 * state.view.scale * sizeScale,
+      -10 * state.view.scale * sizeScale,
+      36 * state.view.scale * sizeScale,
+      20 * state.view.scale * sizeScale
+    );
+    ctx.strokeRect(
+      -18 * state.view.scale * sizeScale,
+      -10 * state.view.scale * sizeScale,
+      36 * state.view.scale * sizeScale,
+      20 * state.view.scale * sizeScale
+    );
 
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(-6 * state.view.scale, -8 * state.view.scale, 12 * state.view.scale, 16 * state.view.scale);
+    ctx.fillRect(
+      -6 * state.view.scale * sizeScale,
+      -8 * state.view.scale * sizeScale,
+      12 * state.view.scale * sizeScale,
+      16 * state.view.scale * sizeScale
+    );
   }
 
   ctx.restore();
@@ -756,22 +977,23 @@ function drawCar() {
 function drawRecorderOverlay() {
   if (!state.recording.enabled) return;
 
+  const frame = getBackgroundFrame();
   const margin = config.trackMargin;
-  const width = Math.max(1, state.viewport.width - margin * 2);
-  const height = Math.max(1, state.viewport.height - margin * 2);
+  const width = Math.max(1, frame.width - margin * 2);
+  const height = Math.max(1, frame.height - margin * 2);
 
   ctx.save();
-  ctx.strokeStyle = 'rgba(104, 214, 255, 0.8)';
+  ctx.strokeStyle = withAlpha(theme.secondary, 0.8);
   ctx.lineWidth = 2;
   ctx.setLineDash([10, 8]);
-  ctx.strokeRect(margin, margin, width, height);
+  ctx.strokeRect(frame.x + margin, frame.y + margin, width, height);
   ctx.setLineDash([]);
   ctx.restore();
 
   if (state.recording.points.length === 0) return;
 
   ctx.save();
-  ctx.strokeStyle = 'rgba(104, 214, 255, 0.8)';
+  ctx.strokeStyle = withAlpha(theme.secondary, 0.8);
   ctx.lineWidth = 2;
   ctx.beginPath();
 
@@ -786,7 +1008,7 @@ function drawRecorderOverlay() {
   });
 
   ctx.stroke();
-  ctx.fillStyle = 'rgba(104, 214, 255, 0.9)';
+  ctx.fillStyle = withAlpha(theme.secondary, 0.9);
   state.recording.points.forEach((point) => {
     const world = normalizedToWorld(point);
     const screen = toScreen(world);
@@ -797,6 +1019,62 @@ function drawRecorderOverlay() {
   ctx.restore();
 }
 
+function beginTrackClip() {
+  const frame = getBackgroundFrame();
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(frame.x, frame.y, frame.width, frame.height);
+  ctx.clip();
+}
+
+function endTrackClip() {
+  ctx.restore();
+}
+
+function getBackgroundFrame() {
+  const width = state.viewport.width;
+  const height = state.viewport.height;
+  if (!backgroundReady) {
+    return { x: 0, y: 0, width, height };
+  }
+  const imgWidth = backgroundImage.naturalWidth || width;
+  const imgHeight = backgroundImage.naturalHeight || height;
+  const fit = config.backgroundFit === 'cover' ? 'cover' : 'contain';
+  const scale = fit === 'cover'
+    ? Math.max(width / imgWidth, height / imgHeight)
+    : Math.min(width / imgWidth, height / imgHeight);
+  const drawWidth = imgWidth * scale;
+  const drawHeight = imgHeight * scale;
+  const offsetX = (width - drawWidth) / 2;
+  const offsetY = (height - drawHeight) / 2;
+  return { x: offsetX, y: offsetY, width: drawWidth, height: drawHeight };
+}
+
+function migrateTrackPointsToBackground() {
+  if (config.trackSpace !== 'viewport') return;
+  if (config.trackControlPoints.length < 2) return;
+
+  const margin = config.trackMargin;
+  const oldWidth = Math.max(1, state.viewport.width - margin * 2);
+  const oldHeight = Math.max(1, state.viewport.height - margin * 2);
+  const frame = getBackgroundFrame();
+  const newWidth = Math.max(1, frame.width - margin * 2);
+  const newHeight = Math.max(1, frame.height - margin * 2);
+
+  config.trackControlPoints = config.trackControlPoints.map((point) => {
+    const worldX = margin + point.x * oldWidth;
+    const worldY = margin + point.y * oldHeight;
+    const nx = (worldX - frame.x - margin) / newWidth;
+    const ny = (worldY - frame.y - margin) / newHeight;
+    return {
+      x: Math.min(1, Math.max(0, nx)),
+      y: Math.min(1, Math.max(0, ny))
+    };
+  });
+
+  config.trackSpace = 'background';
+}
+
 function showEndScreen() {
   if (!endScreen) return;
   endScreen.classList.remove('hidden');
@@ -805,48 +1083,121 @@ function showEndScreen() {
   }
 }
 
+function showCompletionModal() {
+  if (!completionModal) return;
+  completionModal.classList.remove('hidden');
+  state.modalOpen = true;
+}
+
+function hideCompletionModal() {
+  if (!completionModal) return;
+  completionModal.classList.add('hidden');
+}
+
 function openStopModal(stop) {
   state.modalOpen = true;
-  modalTitle.textContent = stop.name || 'Parada';
+  state.activeStopId = stop.id;
+  state.activeStageId = null;
+  renderStopModal(stop);
+  modal.classList.remove('hidden');
+  renderSidebar();
+}
+
+function closeStopModal() {
+  if (state.activeStopId && !isStopCompleted(state.activeStopId)) {
+    return;
+  }
+  hideCompletionModal();
+  modal.classList.add('hidden');
+  state.modalOpen = false;
+  state.activeStopId = null;
+  state.activeStageId = null;
+  renderSidebar();
+}
+
+function renderStopModal(stop) {
   modalBody.innerHTML = '';
   modalClose.style.display = '';
+
   if (modalHeader) {
-    const existingResults = modalHeader.querySelector('.results-button');
-    if (existingResults) existingResults.remove();
+    modalHeader.innerHTML = '';
   }
 
-  if (stop.text) {
-    const label = document.createElement('div');
-    label.textContent = 'Notas:';
-    modalBody.appendChild(label);
+  const progress = getStopProgress(stop.id);
+  const completed = isStopCompleted(stop.id);
+  const stages = buildStopStages(stop);
+  const activeStage = resolveActiveStage(stages, stop, progress);
 
-    const textarea = document.createElement('textarea');
-    textarea.value = stop.text;
-    modalBody.appendChild(textarea);
-  }
+  const headerTitle = document.createElement('h2');
+  headerTitle.textContent = stop.name || 'Parada';
+  modalHeader.appendChild(headerTitle);
 
-  if (stop.video) {
-    const label = document.createElement('div');
-    label.textContent = 'Video:';
-    modalBody.appendChild(label);
+  const progressLabel = document.createElement('div');
+  progressLabel.className = 'modal-progress';
+  progressLabel.textContent = completed
+    ? 'Parada concluida'
+    : `Etapas concluidas ${stages.filter((stage) => isStageCompleted(stop, stage, progress)).length}/${stages.length}`;
+  modalHeader.appendChild(progressLabel);
 
-    if (stop.video.endsWith('.mp4') || stop.video.endsWith('.webm')) {
-      const video = document.createElement('video');
-      video.src = stop.video;
-      video.controls = true;
-      modalBody.appendChild(video);
+  const stageList = document.createElement('div');
+  stageList.className = 'modal-stage-list';
+
+  stages.forEach((stage, index) => {
+    const unlocked = isStageUnlocked(stages, stop, progress, index);
+    const done = isStageCompleted(stop, stage, progress);
+    const stageRow = document.createElement('div');
+    stageRow.className = 'modal-stage';
+    if (done) stageRow.classList.add('complete');
+    if (!unlocked) stageRow.classList.add('locked');
+    if (activeStage && stage.id === activeStage.id) stageRow.classList.add('active');
+
+    const title = document.createElement('div');
+    title.className = 'modal-stage-title';
+    title.textContent = stage.title;
+    stageRow.appendChild(title);
+
+    const status = document.createElement('div');
+    status.className = 'modal-stage-status';
+    status.textContent = done ? 'Concluido' : unlocked ? 'Disponivel' : 'Bloqueado';
+    stageRow.appendChild(status);
+
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'ghost modal-stage-action';
+    action.classList.add('btn-compact');
+    if (stage.type === 'content') {
+      action.textContent = done ? 'Rever' : 'Visualizar';
     } else {
-      const iframe = document.createElement('iframe');
-      iframe.src = stop.video;
-      iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-      modalBody.appendChild(iframe);
+      action.textContent = done ? 'Rever' : 'Jogar';
     }
+    action.disabled = !unlocked;
+    action.addEventListener('click', () => {
+      if (!unlocked) return;
+      state.activeStageId = stage.id;
+      renderStopModal(stop);
+    });
+    stageRow.appendChild(action);
+
+    stageList.appendChild(stageRow);
+  });
+
+  modalHeader.appendChild(stageList);
+  modalClose.classList.add('modal-close');
+  modalClose.disabled = !completed;
+  modalClose.textContent = completed ? 'Voltar para a trilha' : 'Conclua as etapas';
+  if (completed) {
+    modalClose.classList.add('primary');
+    modalClose.classList.remove('ghost');
+    modalClose.classList.add('modal-close--ready');
+  } else {
+    modalClose.classList.remove('primary');
+    modalClose.classList.add('ghost');
+    modalClose.classList.remove('modal-close--ready');
   }
+  modalHeader.appendChild(modalClose);
 
   const lastStopId = stopData[stopData.length - 1]?.id;
-  if (stop.id === lastStopId) {
-    modalClose.style.display = 'none';
-
+  if (completed && stop.id === lastStopId) {
     const resultsButton = document.createElement('button');
     resultsButton.className = 'primary results-button';
     resultsButton.textContent = 'Finalizar trilha';
@@ -854,20 +1205,509 @@ function openStopModal(stop) {
       closeStopModal();
       showEndScreen();
     });
+    modalHeader.appendChild(resultsButton);
+  }
 
-    if (modalHeader) {
-      modalHeader.appendChild(resultsButton);
+  if (activeStage) {
+    renderStageContent(stop, activeStage, progress, stages);
+  }
+}
+
+function renderStageContent(stop, stage, progress, stages) {
+  modalBody.innerHTML = '';
+  if (stage.type === 'content') {
+    renderContentStage(stop, progress, stages, stage);
+    return;
+  }
+  renderGameStage(stop, progress, stages, stage);
+}
+
+function advanceStage(stop, stages, currentStage) {
+  const currentIndex = stages.findIndex((stage) => stage.id === currentStage.id);
+  const nextIndex = currentIndex + 1;
+  if (nextIndex < stages.length) {
+    state.activeStageId = stages[nextIndex].id;
+  }
+  renderStopModal(stop);
+  renderSidebar();
+  if (isStopCompleted(stop.id) && !state.completionShown.has(stop.id)) {
+    state.completionShown.add(stop.id);
+    showCompletionModal();
+  }
+}
+
+function renderContentStage(stop, progress, stages, stage) {
+  const kicker = document.createElement('div');
+  kicker.className = 'content-kicker';
+  kicker.textContent = 'Conteudo da parada';
+  modalBody.appendChild(kicker);
+
+  const contentSection = document.createElement('section');
+  contentSection.className = 'stop-section';
+  const contentTitle = document.createElement('h3');
+  contentTitle.textContent = stop.content?.title || 'Etapa de conteudo';
+  contentSection.appendChild(contentTitle);
+
+  const contentBody = document.createElement('p');
+  contentBody.textContent = stop.content?.body || 'Complete a etapa de conteudo para liberar os games.';
+  contentSection.appendChild(contentBody);
+
+  if (stop.content?.video) {
+    if (stop.content.video.endsWith('.mp4') || stop.content.video.endsWith('.webm')) {
+      const video = document.createElement('video');
+      video.src = stop.content.video;
+      video.controls = true;
+      contentSection.appendChild(video);
     } else {
-      modalBody.appendChild(resultsButton);
+      const iframe = document.createElement('iframe');
+      iframe.src = stop.content.video;
+      iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+      contentSection.appendChild(iframe);
     }
   }
 
-  modal.classList.remove('hidden');
+  const contentButton = document.createElement('button');
+  contentButton.className = 'primary';
+  contentButton.classList.add('btn-compact');
+  contentButton.classList.add('btn-inline');
+  contentButton.textContent = progress.contentDone ? 'Conteudo concluido' : 'Concluir etapa';
+  contentButton.disabled = progress.contentDone;
+  contentButton.addEventListener('click', () => {
+    progress.contentDone = true;
+    advanceStage(stop, stages, stage);
+  });
+  contentSection.appendChild(contentButton);
+  modalBody.appendChild(contentSection);
 }
 
-function closeStopModal() {
-  modal.classList.add('hidden');
-  state.modalOpen = false;
+function renderGameStage(stop, progress, stages, stage) {
+  const game = stage.game;
+  const kicker = document.createElement('div');
+  kicker.className = 'content-kicker';
+  kicker.textContent = 'Game da parada';
+  modalBody.appendChild(kicker);
+
+  const header = document.createElement('section');
+  header.className = 'stop-section';
+  const title = document.createElement('h3');
+  title.textContent = game.title;
+  header.appendChild(title);
+  const desc = document.createElement('p');
+  desc.textContent = game.description || '';
+  header.appendChild(desc);
+  modalBody.appendChild(header);
+
+  const board = document.createElement('div');
+  board.className = 'game-board';
+  modalBody.appendChild(board);
+
+  const onComplete = () => {
+    progress.gamesDone.add(game.id);
+    advanceStage(stop, stages, stage);
+  };
+
+  if (game.type === 'memory') {
+    renderMemoryGame(board, onComplete);
+  } else if (game.type === 'quiz') {
+    renderQuizGame(board, game, onComplete);
+  } else if (game.type === 'sequence') {
+    renderSequenceGame(board, game, onComplete);
+  } else if (game.type === 'puzzle') {
+    renderPuzzleGame(board, game, onComplete);
+  }
+}
+
+function renderMemoryGame(container, onComplete) {
+  const symbols = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const deck = shuffleArray([...symbols, ...symbols]);
+  const grid = document.createElement('div');
+  grid.className = 'memory-grid';
+  container.appendChild(grid);
+
+  let firstIndex = null;
+  let lock = false;
+  const matched = new Set();
+  const elements = [];
+
+  const revealCard = (index, show) => {
+    const el = elements[index];
+    if (!el) return;
+    if (show) {
+      el.classList.add('revealed');
+      el.textContent = deck[index];
+    } else {
+      el.classList.remove('revealed');
+      el.textContent = '';
+    }
+  };
+
+  const checkCompletion = () => {
+    if (matched.size === deck.length) {
+      onComplete();
+    }
+  };
+
+  deck.forEach((symbol, index) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'memory-card';
+    card.addEventListener('click', () => {
+      if (lock || matched.has(index)) return;
+      if (firstIndex === index) return;
+      revealCard(index, true);
+      if (firstIndex === null) {
+        firstIndex = index;
+        return;
+      }
+      if (deck[firstIndex] === symbol) {
+        matched.add(firstIndex);
+        matched.add(index);
+        elements[firstIndex].classList.add('matched');
+        card.classList.add('matched');
+        firstIndex = null;
+        checkCompletion();
+        return;
+      }
+      lock = true;
+      const prevIndex = firstIndex;
+      firstIndex = null;
+      setTimeout(() => {
+        revealCard(prevIndex, false);
+        revealCard(index, false);
+        lock = false;
+      }, 700);
+    });
+    elements.push(card);
+    grid.appendChild(card);
+  });
+}
+
+function renderQuizGame(container, game, onComplete) {
+  const question = document.createElement('p');
+  question.textContent = game.question;
+  container.appendChild(question);
+
+  const options = document.createElement('div');
+  options.className = 'quiz-options';
+  container.appendChild(options);
+
+  let solved = false;
+  game.options.forEach((option, index) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'quiz-option';
+    btn.textContent = option;
+    btn.addEventListener('click', () => {
+      if (index === game.correctIndex) {
+        if (solved) return;
+        btn.classList.add('correct');
+        solved = true;
+        Array.from(options.children).forEach((child) => {
+          child.disabled = true;
+        });
+        onComplete();
+      } else {
+        btn.classList.add('incorrect');
+      }
+    });
+    options.appendChild(btn);
+  });
+}
+
+function renderSequenceGame(container, game, onComplete) {
+  const selected = [];
+  const info = document.createElement('p');
+  info.textContent = 'Clique nas etapas na ordem correta.';
+  container.appendChild(info);
+
+  const selectedWrap = document.createElement('div');
+  selectedWrap.className = 'sequence-selected';
+  container.appendChild(selectedWrap);
+
+  const optionsWrap = document.createElement('div');
+  optionsWrap.className = 'sequence-options';
+  container.appendChild(optionsWrap);
+
+  const resetButton = document.createElement('button');
+  resetButton.type = 'button';
+  resetButton.className = 'ghost';
+  resetButton.textContent = 'Reiniciar sequencia';
+  resetButton.addEventListener('click', () => {
+    selected.length = 0;
+    selectedWrap.innerHTML = '';
+    Array.from(optionsWrap.children).forEach((child) => {
+      child.disabled = false;
+    });
+  });
+  container.appendChild(resetButton);
+
+  const shuffled = shuffleArray(game.steps);
+  shuffled.forEach((step) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'sequence-chip';
+    chip.textContent = step;
+    chip.addEventListener('click', () => {
+      selected.push(step);
+      const tag = document.createElement('span');
+      tag.textContent = step;
+      selectedWrap.appendChild(tag);
+      chip.disabled = true;
+
+      if (selected.length === game.steps.length) {
+        const correct = selected.every((value, idx) => value === game.steps[idx]);
+        if (correct) {
+          onComplete();
+        } else {
+          info.textContent = 'Sequencia incorreta. Tente novamente.';
+        }
+      }
+    });
+    optionsWrap.appendChild(chip);
+  });
+}
+
+function renderPuzzleGame(container, game, onComplete) {
+  const size = Math.max(2, Math.min(6, game.size || 3));
+  const total = size * size;
+  const pieceOrder = shuffleArray(Array.from({ length: total }, (_, i) => i));
+  const boardPositions = Array.from({ length: total }, () => null);
+  let selectedPiece = null;
+  let solved = false;
+  const drag = {
+    active: false,
+    pieceIndex: null,
+    source: null,
+    fromCell: null,
+    originEl: null,
+    ghost: null,
+    offsetX: 0,
+    offsetY: 0,
+    startX: 0,
+    startY: 0
+  };
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'puzzle-wrap';
+  wrapper.style.setProperty('--puzzle-size', size);
+  wrapper.style.setProperty('--puzzle-image', `url("${game.image}")`);
+  container.appendChild(wrapper);
+
+  const board = document.createElement('div');
+  board.className = 'puzzle-board';
+  wrapper.appendChild(board);
+
+  const tray = document.createElement('div');
+  tray.className = 'puzzle-tray';
+  wrapper.appendChild(tray);
+
+  const helper = document.createElement('p');
+  helper.className = 'puzzle-hint';
+  helper.textContent = 'Clique em uma peca e depois em uma casa do tabuleiro.';
+  container.appendChild(helper);
+
+  function cleanupDrag() {
+    if (drag.originEl) {
+      drag.originEl.classList.remove('puzzle-piece--dragging');
+    }
+    if (drag.ghost && drag.ghost.parentNode) {
+      drag.ghost.parentNode.removeChild(drag.ghost);
+    }
+    drag.active = false;
+    drag.pieceIndex = null;
+    drag.source = null;
+    drag.fromCell = null;
+    drag.originEl = null;
+    drag.ghost = null;
+  }
+
+  function startDrag(event, pieceIndex, source, fromCell, originEl) {
+    if (solved) return;
+    event.preventDefault();
+    drag.pieceIndex = pieceIndex;
+    drag.source = source;
+    drag.fromCell = fromCell;
+    drag.originEl = originEl;
+    drag.startX = event.clientX;
+    drag.startY = event.clientY;
+
+    const rect = originEl.getBoundingClientRect();
+    drag.offsetX = event.clientX - rect.left;
+    drag.offsetY = event.clientY - rect.top;
+
+    const handleMove = (moveEvent) => {
+      const dx = moveEvent.clientX - drag.startX;
+      const dy = moveEvent.clientY - drag.startY;
+      if (!drag.active) {
+        if (Math.hypot(dx, dy) < 6) {
+          return;
+        }
+        const ghost = originEl.cloneNode(true);
+        ghost.classList.add('puzzle-ghost');
+        ghost.style.width = `${rect.width}px`;
+        ghost.style.height = `${rect.height}px`;
+        ghost.style.left = `${rect.left}px`;
+        ghost.style.top = `${rect.top}px`;
+        ghost.style.setProperty('--puzzle-image', `url("${game.image}")`);
+        ghost.style.setProperty('--puzzle-size', size);
+        document.body.appendChild(ghost);
+        drag.ghost = ghost;
+        drag.originEl.classList.add('puzzle-piece--dragging');
+        drag.active = true;
+      }
+      if (drag.ghost) {
+        drag.ghost.style.left = `${moveEvent.clientX - drag.offsetX}px`;
+        drag.ghost.style.top = `${moveEvent.clientY - drag.offsetY}px`;
+      }
+    };
+
+    const handleEnd = (endEvent) => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleEnd);
+      window.removeEventListener('pointercancel', handleEnd);
+      if (!drag.active) {
+        cleanupDrag();
+        return;
+      }
+
+      const target = document.elementFromPoint(endEvent.clientX, endEvent.clientY);
+      const cell = target ? target.closest('.puzzle-cell') : null;
+      if (cell) {
+        const targetIndex = Number(cell.dataset.index);
+        if (!Number.isNaN(targetIndex)) {
+          if (drag.source === 'tray') {
+            removePieceFromTray(drag.pieceIndex);
+            placePiece(drag.pieceIndex, targetIndex);
+          } else if (drag.source === 'board') {
+            if (drag.fromCell !== null && drag.fromCell !== targetIndex) {
+              boardPositions[drag.fromCell] = null;
+              placePiece(drag.pieceIndex, targetIndex);
+            }
+          }
+        }
+      }
+
+      cleanupDrag();
+      selectedPiece = null;
+      if (isSolved()) {
+        solved = true;
+        onComplete();
+      }
+      renderAll();
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleEnd);
+    window.addEventListener('pointercancel', handleEnd);
+  }
+
+  function isSolved() {
+    return boardPositions.every((value, index) => value === index);
+  }
+
+  function placePiece(pieceIndex, cellIndex) {
+    const existing = boardPositions[cellIndex];
+    if (existing !== null) {
+      boardPositions[cellIndex] = pieceIndex;
+      pieceOrder.push(existing);
+    } else {
+      boardPositions[cellIndex] = pieceIndex;
+    }
+  }
+
+  function removePieceFromTray(pieceIndex) {
+    const idx = pieceOrder.indexOf(pieceIndex);
+    if (idx !== -1) pieceOrder.splice(idx, 1);
+  }
+
+  function renderBoard() {
+    board.innerHTML = '';
+    for (let i = 0; i < total; i += 1) {
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'puzzle-cell';
+      cell.dataset.index = String(i);
+
+      const pieceIndex = boardPositions[i];
+      if (pieceIndex !== null) {
+        const piece = document.createElement('span');
+        piece.className = 'puzzle-piece';
+        piece.dataset.piece = String(pieceIndex);
+        piece.style.setProperty('--piece-x', pieceIndex % size);
+        piece.style.setProperty('--piece-y', Math.floor(pieceIndex / size));
+        if (selectedPiece === pieceIndex) {
+          piece.classList.add('selected');
+        }
+        piece.addEventListener('pointerdown', (event) => {
+          startDrag(event, pieceIndex, 'board', i, piece);
+        });
+        cell.appendChild(piece);
+      }
+
+      cell.addEventListener('click', () => {
+        if (solved) return;
+        if (selectedPiece === null) {
+          if (boardPositions[i] !== null) {
+            pieceOrder.push(boardPositions[i]);
+            boardPositions[i] = null;
+            renderAll();
+          }
+          return;
+        }
+
+        removePieceFromTray(selectedPiece);
+        placePiece(selectedPiece, i);
+        selectedPiece = null;
+        if (isSolved()) {
+          solved = true;
+          onComplete();
+        }
+        renderAll();
+      });
+
+      board.appendChild(cell);
+    }
+  }
+
+  function renderTray() {
+    tray.innerHTML = '';
+    const trayTitle = document.createElement('div');
+    trayTitle.className = 'puzzle-tray-title';
+    trayTitle.textContent = 'Pecas';
+    tray.appendChild(trayTitle);
+
+    const trayGrid = document.createElement('div');
+    trayGrid.className = 'puzzle-tray-grid';
+    tray.appendChild(trayGrid);
+
+    pieceOrder.forEach((pieceIndex) => {
+      const piece = document.createElement('button');
+      piece.type = 'button';
+      piece.className = 'puzzle-piece';
+      piece.dataset.piece = String(pieceIndex);
+      piece.style.setProperty('--piece-x', pieceIndex % size);
+      piece.style.setProperty('--piece-y', Math.floor(pieceIndex / size));
+      if (selectedPiece === pieceIndex) {
+        piece.classList.add('selected');
+      }
+      piece.addEventListener('pointerdown', (event) => {
+        startDrag(event, pieceIndex, 'tray', null, piece);
+      });
+      piece.addEventListener('click', () => {
+        if (solved) return;
+        selectedPiece = selectedPiece === pieceIndex ? null : pieceIndex;
+        renderAll();
+      });
+      trayGrid.appendChild(piece);
+    });
+  }
+
+  function renderAll() {
+    renderBoard();
+    renderTray();
+  }
+
+  renderAll();
 }
 
 function resetGame() {
@@ -880,6 +1720,10 @@ function resetGame() {
   state.visited = new Set();
   state.stopInRange = new Set();
   state.stopTimes = new Map();
+  state.stopProgress = new Map();
+  state.activeStopId = null;
+  state.activeStageId = null;
+  state.completionShown = new Set();
   state.modalOpen = false;
   state.paused = false;
   state.lapStartTime = null;
@@ -892,7 +1736,9 @@ function resetGame() {
   if (endScreen) {
     endScreen.classList.add('hidden');
   }
+  hideCompletionModal();
   buildTrack();
+  renderSidebar();
 }
 
 function update(dt) {
@@ -950,6 +1796,9 @@ function update(dt) {
     if (!Number.isFinite(distance)) continue;
     const inRange = Math.abs(state.progress - distance) <= config.stopRadius;
     if (inRange && !state.stopInRange.has(stop.id)) {
+      if (!isStopUnlocked(stop.id)) {
+        continue;
+      }
       state.stopInRange.add(stop.id);
       if (!state.visited.has(stop.id)) {
         state.visited.add(stop.id);
@@ -968,7 +1817,7 @@ function update(dt) {
   if (
     state.finished &&
     !state.modalOpen &&
-    (stopData.length === 0 || state.visited.size === stopData.length)
+    (stopData.length === 0 || areAllStopsCompleted())
   ) {
     showEndScreen();
   }
@@ -984,9 +1833,11 @@ function draw() {
     return;
   }
 
+  beginTrackClip();
   drawPath();
   drawStops();
   drawCar();
+  endTrackClip();
 }
 
 function loop(time) {
@@ -1021,10 +1872,10 @@ window.addEventListener('keydown', (event) => {
       state.recording.points = [];
     } else if (state.recording.points.length >= 2) {
       config.trackControlPoints = [...state.recording.points];
+      config.trackSpace = 'background';
       resetGame();
     }
     state.paused = state.recording.enabled ? true : false;
-    updateHudHint();
   }
 
   if (event.key.toLowerCase() === 'c' && state.recording.enabled) {
@@ -1086,6 +1937,12 @@ window.addEventListener('mouseup', () => {
 });
 
 modalClose.addEventListener('click', closeStopModal);
+if (completionClose) {
+  completionClose.addEventListener('click', () => {
+    hideCompletionModal();
+    closeStopModal();
+  });
+}
 if (introStart && introModal) {
     introStart.addEventListener('click', () => {
       introModal.classList.add('hidden');
@@ -1097,7 +1954,6 @@ if (introStart && introModal) {
 
 resize();
 resetGame();
-updateHudHint();
 if (introModal && !introModal.classList.contains('hidden')) {
   state.paused = true;
 }
