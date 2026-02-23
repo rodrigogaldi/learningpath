@@ -1,0 +1,94 @@
+ Olá pessoal, meu nome é Luciano, sou técnico de segurança da GASMIG e nós vamos falar aqui agora
+ nesse módulo sobre as definições das siglas e algumas definições que é importante a gente ter
+ para entendimento do curso TBS. São conceitos também que a gente vai o tempo todo nas atividades
+ da GASMIG, vocês vão estar relacionados com essas situações, com situações que envolvam
+ esses conceitos. Então assim, para desenvolver as atividades, para liberar um serviço, para fazer
+ uma análise de risco, coisas que vocês vão aprender tanto agora, tanto nesse TBS, mas também
+ futuramente em outros treinamentos específicos, vocês vão precisar de dominar esses conceitos.
+ Então vamos passar com vocês aqui as definições, estão também lá nos slides, onde vocês poderão
+ consultar e sempre fazer o uso do material lá na biblioteca e nos links. Beleza? Então olha só,
+ o primeiro conceito que a gente precisa entender é a definição de perigo. O que é perigo? Qual a
+ situação que nós evidenciamos um perigo? Para que a gente já deixe bem claro essa definição e
+ vocês não esqueçam, vamos colocar o seguinte: perigo é tudo aquilo que a gente faz. Tem
+ uma ação do ser humano, tem uma ação nossa, nós estamos inseridos em um contexto, ali tem a
+ situação de perigo. Vamos dar um exemplo aqui: se você vai cortar algo com um instrumento,
+ uma faca, por exemplo, na cozinha você vai preparar um alimento, então você está manuseando uma faca,
+ o ato de manusear essa faca é um ato perigoso, ok? Então perigo é o manuseio da faca. Então
+ esse é um exemplo simples que a gente está vivendo aí todo dia em nossa residência. Nas nossas
+ atividades nós podemos dizer o seguinte: olha, se eu estou indo para a rede de gasoduto e lá nós
+ temos um gasoduto pressurizado, há um risco desse gasoduto romper, seja nas minhas atividades normais
+ de despressurização ou mesmo em caso de acidente. Esse gasoduto, esse gás, pode pegar fogo e pode gerar uma grande catástrofe, um grande incidente.
+ Mas o perigo então é o simples fato de eu estar na rede de gasoduto, correto? Então se eu vou para
+ atividade externa, eu estou diante de um perigo, de uma atividade perigosa que a gente chama. Então ali
+ existe um perigo. É só a gente lembrar o seguinte: tudo que se relacionar à nossa atividade e que a
+ gente vai desenvolver uma ação, nós estamos praticando um ato perigoso, seja ele um perigo que dentro de
+ uma classificação de risco lá da análise de risco. Vai ser um perigo que pode ser aceitável ou pode
+ ser uma situação perigosa em que vai ter que ter uma intervenção humana, intervenção da área de
+ saúde e segurança para que o trabalhador possa desempenhar suas atividades. Então ação perigosa
+ são as ações que nós desenvolvemos aí dentro da companhia. E a definição clara está lá nos
+ slides que diz o seguinte: perigo, situação ou ato potencial
+ para provocar danos, seja humanos ou mesmo a propriedade aí da companhia, ok? Definição de
+ risco. O risco ele está combinado com o perigo e isso nós vamos ver muito nas nossas análises de
+ risco e também em alguns programas que a gente vai falar depois nesse treinamento, porque o risco está
+ associado ao perigo e é ele que define se a gente pode ou não executar uma atividade. Risco é a probabilidade de
+ ocorrência de um evento perigoso ou exposição com a gravidade de uma lesão. Vamos dar um exemplo aqui
+ para ficar claro. Eu tenho uma atividade que é perigosa. Nessa atividade perigosa pode haver um
+ acidente e quando a gente faz a matriz de risco, quando a gente faz uma análise de risco, nós
+ definimos qual é a probabilidade da ocorrência de um acidente. Se o acidente é simples e não vai
+ causar grandes consequências, esse risco é baixo. Inclusive, nós vamos depois em outros treinamentos, vocês
+ vão tomar o conhecimento de matriz de risco, a própria análise de risco, quando for ser desenvolvida,
+ vocês vão passar por treinamento sobre elaboração de análise de risco e quando você faz a matriz de
+ risco, você define o percentual que essa matriz dá de resultado. Então, um risco grave, um perigo existente, vai
+ causar um dano de acidente se acontecer aquele acidente, que a probabilidade, o risco é exatamente
+ essa probabilidade, é o estudo dessa probabilidade. Então, se o risco gerar a probabilidade de um
+ acidente em um grau que não seja aceitável pela companhia, a atividade deve ser substituída, deve
+ ser prorrogada, deve ser melhor estudada para que esse risco seja definido num percentual aceitável. Então,
+ o risco é a probabilidade de ocorrência de um evento perigoso. Eu estou na atividade que é perigosa,
+ essa atividade pode me gerar um acidente, esse acidente é o resultado da probabilidade desse
+ risco e se a gente calcula e joga ele para uma condição aceitável, eu posso realizar a atividade.
+ Se não, eu tenho que fazer um novo estudo, ok? Então, risco é a probabilidade da ocorrência de um acidente e nós temos que ter atenção
+ no risco desse cara, avaliar melhor, analisar para antes de executar uma atividade. Por isso é tão
+ importante a gente ter conhecimento do perigo e também conhecer o risco, que é essa probabilidade.
+ Conhecer e saber como fazer a definição de risco, porque o risco não é só você saber que ele existe, você tem
+ que calcular, fazer a probabilidade dele e avaliar se ele está numa condição de extrema preocupação para a companhia,
+ onde a gente deve, inclusive, suspender uma atividade. Mas isso, esse estudo, essa análise da
+ probabilidade do risco, vocês vão aprender lá no curso de análise de risco, que futuramente vocês
+ vão realizar, ok? Outra definição que também a gente tem na SSB e é importante que vocês
+ dominem é o dano. O dano é a consequência da exposição ao risco. Um exemplo que a gente pode
+ notar aqui são os acidentes de trânsito ou mesmo os acidentes na própria rede do gasoduto, onde nós
+ podemos ter danos com pessoas, e aí seriam os acidentes, propriamente dito, lá para saúde e
+ segurança, onde a gente vai emitir CATE, vai dar toda assistência, enfim. E também podemos ter acidente com
+ dano material, acidente com veículos, acidente no próprio gasoduto, onde somente o gasoduto fica danificado. Dano são as consequências
+ da exposição ao risco. Uma outra definição que é importante a gente considerar são as definições de
+ condição insegura e comportamento inseguro. Inclusive, esses conceitos estão intrinsecamente aí dentro da
+ nossa política de segurança e é algo que a gente trabalha na prática, no dia a dia, ao elaborarmos os
+ nossos procedimentos. O que que seria, então, condição insegura e comportamento inseguro? Condição insegura é algo que está
+ na instalação, é algo que está colocado ali no espaço, seja em um piso, seja no equipamento, seja
+ no gasoduto, enfim, é algo que está no local e você, ao executar sua atividade, você vai se
+ deparar com aquela situação. Então, se você se depara com uma situação que pode gerar um
+ acidente e aquela situação está no local, não foi criada por você, não foi criada pelo empregado,
+ nós estamos diante de uma condição insegura, identificada no local. Nesse momento, o que que a
+ gente tem que fazer, então? Eliminar essa condição insegura para que a gente possa trabalhar. Lá nos
+ trabalhos, lá no dia a dia, onde a gente vai elaborar as análises de risco e tal, nós vamos precisar
+ identificar essas condições inseguras para que a gente possa liberar uma atividade. Então, condição
+ insegura é a condição dentro do ambiente de trabalho que pode ou não causar um acidente e que
+ não é desejada ali naquele local. Um exemplo de condição insegura, a gente pode citar, seria uma
+ máquina projetada sem proteção. Então, se nós temos uma máquina que foi projetada, veio de fábrica,
+ está na empresa e não tem proteção, essa máquina nos apresenta uma condição insegura para o
+ acidente. Então, nós temos que tratar essa condição insegura. Vou dar um exemplo nosso aqui. Uma atividade em área de City Gate, aí você chega na instalação,
+ ela está tomada por vegetação. Essa instalação está num local de pouco acesso e ela está tomada por
+ uma vegetação. Você vai executar uma atividade ali, então você tem uma condição insegura que pode gerar
+ um perigo que seria a presença de um animal peçonhento. Então, você primeiro faz a limpeza para depois
+ você executar suas atividades normais ali dentro da instalação. A outra definição que está colocada é a de
+ comportamento inseguro. Comportamento inseguro, diferente da condição insegura, já é algo
+ praticado, já é algo desenvolvido pelo empregado. Então, se você tem um comportamento inseguro em
+ relação à atividade, você gera uma situação de acidente ali, um risco para os seus colegas e para
+ você também. Então, é algo que nós praticamos. Se eu vou atravessar fora da faixa, eu estou agindo com um
+ comportamento inseguro, podendo gerar aí, podendo sofrer um acidente ou gerar um estresse aí no
+ trânsito. O comportamento inseguro é aquele comportamento gerado pela própria pessoa. O
+ comportamento inseguro é algo que, no desenvolvimento da cultura de segurança, no desenvolvimento da
+ política de segurança, é algo que tende a não existir. E a gente tem que procurar, nós como
+ empregados, evitar a prática desses comportamentos inseguros. Ok, pessoal, então é isso. Espero que vocês tenham gostado.
+ Qualquer coisa, entre em contato lá com a SSB. Também pode buscar aí dentro do próprio material do curso.
+ Tem a biblioteca, tem os links, estamos todos à disposição aí para auxiliar e espero que vocês tenham um bom treinamento. Valeu!
+ Acesse o nosso site www.sbs.org.br para mais informações.
