@@ -13,6 +13,8 @@ const introStart = document.getElementById('intro-start');
 const endScreen = document.getElementById('end-screen');
 const accelButton = document.getElementById('accelerate-button');
 const sidebarList = document.getElementById('stop-list');
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebar-toggle');
 
 const keyState = new Set();
 let accelHeld = false;
@@ -593,6 +595,30 @@ function renderSidebar() {
   });
 }
 
+function setSidebarOpen(open) {
+  document.body.classList.toggle('sidebar-open', open);
+  if (!sidebarToggle) return;
+  sidebarToggle.setAttribute('aria-expanded', String(open));
+  sidebarToggle.textContent = open ? 'Ocultar menu' : 'Mostrar menu';
+}
+
+function initSidebar() {
+  if (!sidebar || !sidebarToggle) return;
+  setSidebarOpen(false);
+
+  sidebarToggle.addEventListener('click', () => {
+    const isOpen = document.body.classList.contains('sidebar-open');
+    setSidebarOpen(!isOpen);
+  });
+
+  document.addEventListener('pointerdown', (event) => {
+    if (!document.body.classList.contains('sidebar-open')) return;
+    const target = event.target;
+    if (sidebar.contains(target) || sidebarToggle.contains(target)) return;
+    setSidebarOpen(false);
+  });
+}
+
 function areAllStopsCompleted() {
   return stopData.every((stop) => isStopCompleted(stop.id));
 }
@@ -1096,6 +1122,7 @@ function hideCompletionModal() {
 
 function openStopModal(stop) {
   state.modalOpen = true;
+  setSidebarOpen(false);
   state.activeStopId = stop.id;
   state.activeStageId = null;
   renderStopModal(stop);
@@ -1887,6 +1914,10 @@ window.addEventListener('keydown', (event) => {
     console.log('trackControlPoints:', JSON.stringify(state.recording.points, null, 2));
   }
 
+  if (event.key === 'Escape' && document.body.classList.contains('sidebar-open')) {
+    setSidebarOpen(false);
+  }
+
   keyState.add(event.key);
 });
 
@@ -1952,6 +1983,7 @@ if (introStart && introModal) {
     });
   }
 
+initSidebar();
 resize();
 resetGame();
 if (introModal && !introModal.classList.contains('hidden')) {
