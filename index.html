@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -52,12 +52,52 @@
           <ul>
             <li>Utilize a seta para cima ou para baixo para caminhar no mapa.</li>
             <li>Se preferir aperte o botão na tela.</li>
-            <li>Ao chegar nas paradas, leia as instruções e continue.</li>
+            <li>Ao chegar nas paradas, leia as instruções e execute as tarefas.</li>
           </ul>
-          <button id="intro-start" class="primary">Iniciar Jogo</button>
+          <button id="intro-start" class="primary">Iniciar</button>
         </div>
         <div class="intro-media">
           <img src="imgs/logo.jpeg" alt="Logo Learning Path" />
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="avatar-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="avatar-title"
+    >
+      <div class="avatar-card">
+        <div class="avatar-header">
+          <h2 id="avatar-title">Escolha seu avatar</h2>
+          <p>Selecione seu avatar para acessar o jogo.</p>
+        </div>
+        <div id="avatar-grid" class="avatar-grid">
+          <button class="avatar-option" type="button" data-avatar="avatar/avatar-1.png" aria-pressed="false">
+            <span class="avatar-tag">Selecionado</span>
+            <img src="avatar/avatar-1.png" alt="Avatar 1" />
+            <span class="avatar-name">Pedro</span>
+          </button>
+          <button class="avatar-option" type="button" data-avatar="avatar/avatar-2.png" aria-pressed="false">
+            <span class="avatar-tag">Selecionado</span>
+            <img src="avatar/avatar-2.png" alt="Avatar 2" />
+            <span class="avatar-name">Ligia</span>
+          </button>
+          <button class="avatar-option" type="button" data-avatar="avatar/avatar-3.png" aria-pressed="false">
+            <span class="avatar-tag">Selecionado</span>
+            <img src="avatar/avatar-3.png" alt="Avatar 3" />
+            <span class="avatar-name">Henrique</span>
+          </button>
+          <button class="avatar-option" type="button" data-avatar="avatar/avatar-4.png" aria-pressed="false">
+            <span class="avatar-tag">Selecionado</span>
+            <img src="avatar/avatar-4.png" alt="Avatar 4" />
+            <span class="avatar-name">Marisa</span>
+          </button>
+        </div>
+        <div class="avatar-actions">
+          <button id="avatar-confirm" class="primary" disabled>Iniciar jogo</button>
         </div>
       </div>
     </div>
