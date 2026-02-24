@@ -10,6 +10,9 @@ const completionModal = document.getElementById('completion-modal');
 const completionClose = document.getElementById('completion-close');
 const introModal = document.getElementById('intro-modal');
 const introStart = document.getElementById('intro-start');
+const avatarModal = document.getElementById('avatar-modal');
+const avatarGrid = document.getElementById('avatar-grid');
+const avatarConfirm = document.getElementById('avatar-confirm');
 const endScreen = document.getElementById('end-screen');
 const accelButton = document.getElementById('accelerate-button');
 const sidebarList = document.getElementById('stop-list');
@@ -74,12 +77,30 @@ gameMusic.loop = true;
 gameMusic.volume = 0.2;
 let gameMusicUnlocked = false;
 
+const defaultCarSource = 'imgs/car.png';
 const carSprite = new Image();
-carSprite.src = 'imgs/car.png';
 let carSpriteReady = false;
+let currentCarSource = defaultCarSource;
+
+function setCarSpriteSource(source) {
+  const nextSource = source || defaultCarSource;
+  if (nextSource === currentCarSource) return;
+  currentCarSource = nextSource;
+  carSpriteReady = false;
+  carSprite.src = nextSource;
+}
+
 carSprite.addEventListener('load', () => {
   carSpriteReady = true;
 });
+carSprite.addEventListener('error', () => {
+  if (currentCarSource === defaultCarSource) return;
+  currentCarSource = defaultCarSource;
+  carSpriteReady = false;
+  carSprite.src = defaultCarSource;
+});
+
+carSprite.src = defaultCarSource;
 
 const backgroundSources = ['imgs/trail.png'];
 let backgroundSourceIndex = 0;
@@ -217,6 +238,7 @@ const state = {
   stopDistances: new Map(),
   finishDistance: 0,
   finished: false,
+  avatar: null,
   view: {
     scale: 1,
     offsetX: 0,
@@ -711,7 +733,13 @@ function updateRunningSound() {
 function updateGameMusic() {
   if (!gameMusicUnlocked) return;
   const introOpen = introModal && !introModal.classList.contains('hidden');
-  if (state.modalOpen || introOpen || (endScreen && !endScreen.classList.contains('hidden'))) {
+  const avatarOpen = avatarModal && !avatarModal.classList.contains('hidden');
+  if (
+    state.modalOpen ||
+    introOpen ||
+    avatarOpen ||
+    (endScreen && !endScreen.classList.contains('hidden'))
+  ) {
     if (!gameMusic.paused) {
       gameMusic.pause();
     }
@@ -719,6 +747,33 @@ function updateGameMusic() {
   }
   if (gameMusic.paused) {
     gameMusic.play().catch(() => {});
+  }
+}
+
+const avatarOptions = avatarGrid ? Array.from(avatarGrid.querySelectorAll('.avatar-option')) : [];
+
+function openAvatarModal() {
+  if (!avatarModal) return false;
+  avatarModal.classList.remove('hidden');
+  state.paused = true;
+  return true;
+}
+
+function closeAvatarModal() {
+  if (!avatarModal) return;
+  avatarModal.classList.add('hidden');
+}
+
+function setAvatarSelection(option) {
+  if (!option || !option.dataset.avatar) return;
+  state.avatar = option.dataset.avatar;
+  avatarOptions.forEach((button) => {
+    const selected = button === option;
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+  if (avatarConfirm) {
+    avatarConfirm.disabled = false;
   }
 }
 
@@ -1974,14 +2029,34 @@ if (completionClose) {
     closeStopModal();
   });
 }
-if (introStart && introModal) {
-    introStart.addEventListener('click', () => {
-      introModal.classList.add('hidden');
-      unlockRunningSound();
-      unlockGameMusic();
-      state.paused = false;
+if (avatarOptions.length) {
+  avatarOptions.forEach((option) => {
+    option.addEventListener('click', () => {
+      setAvatarSelection(option);
     });
-  }
+  });
+}
+if (avatarConfirm) {
+  avatarConfirm.addEventListener('click', () => {
+    if (!state.avatar) return;
+    setCarSpriteSource(state.avatar);
+    closeAvatarModal();
+    unlockRunningSound();
+    unlockGameMusic();
+    state.paused = false;
+  });
+}
+if (introStart && introModal) {
+  introStart.addEventListener('click', () => {
+    introModal.classList.add('hidden');
+    if (openAvatarModal()) {
+      return;
+    }
+    unlockRunningSound();
+    unlockGameMusic();
+    state.paused = false;
+  });
+}
 
 initSidebar();
 resize();
