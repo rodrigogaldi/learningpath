@@ -277,6 +277,7 @@ const state = {
 const config = {
   roadWidth: 220,
   edgeWidth: 10,
+  trackOpacity: 0,
   trackMargin: 0,
   backgroundFit: 'contain',
   trackSpace: 'background',
@@ -961,10 +962,11 @@ function drawBackground() {
 
 function drawPath() {
   if (state.track.length < 2) return;
+  if (!config.trackOpacity) return;
   ctx.save();
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-  ctx.strokeStyle = withAlpha(theme.ink, 0.35);
+  ctx.strokeStyle = withAlpha(theme.ink, config.trackOpacity);
   ctx.lineWidth = 6;
   ctx.beginPath();
   state.track.forEach((point, index) => {
