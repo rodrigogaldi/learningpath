@@ -239,6 +239,7 @@ const state = {
   finishDistance: 0,
   finished: false,
   avatar: null,
+  avatarSelection: null,
   view: {
     scale: 1,
     offsetX: 0,
@@ -766,7 +767,7 @@ function closeAvatarModal() {
 
 function setAvatarSelection(option) {
   if (!option || !option.dataset.avatar) return;
-  state.avatar = option.dataset.avatar;
+  state.avatarSelection = option.dataset.avatar;
   avatarOptions.forEach((button) => {
     const selected = button === option;
     button.classList.toggle('selected', selected);
@@ -1005,6 +1006,7 @@ function drawStops() {
 
 function drawCar() {
   if (state.track.length < 2) return;
+  if (!state.avatar) return;
   const base = getPointAt(state.progress);
   const carX = base.x + base.nx * state.lateral;
   const carY = base.y + base.ny * state.lateral;
@@ -1015,7 +1017,8 @@ function drawCar() {
   ctx.translate(screen.x, screen.y + bob);
 
   if (carSpriteReady) {
-    const targetWidth = 132 * state.view.scale * 0.65;
+    const sizeBoost = 1.4;
+    const targetWidth = 132 * state.view.scale * 0.65 * sizeBoost;
     const ratio = carSprite.naturalWidth / carSprite.naturalHeight || 1;
     const targetHeight = targetWidth / ratio;
     ctx.drawImage(
@@ -1026,7 +1029,7 @@ function drawCar() {
       targetHeight
     );
   } else {
-    const sizeScale = 1.3;
+    const sizeScale = 1.3 * 1.4;
     ctx.fillStyle = theme.primary;
     ctx.strokeStyle = theme.bg;
     ctx.lineWidth = 2 * state.view.scale;
@@ -2038,7 +2041,8 @@ if (avatarOptions.length) {
 }
 if (avatarConfirm) {
   avatarConfirm.addEventListener('click', () => {
-    if (!state.avatar) return;
+    if (!state.avatarSelection) return;
+    state.avatar = state.avatarSelection;
     setCarSpriteSource(state.avatar);
     closeAvatarModal();
     unlockRunningSound();
